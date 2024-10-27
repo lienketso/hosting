@@ -1,0 +1,23 @@
+<?php
+
+/**
+ * Performs database updates and uninstallation cleanup for the winmap module.
+ */
+
+
+/**
+ * Implements hook_install().
+ */
+function winmap_install() {
+
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function winmap_uninstall() {
+
+
+}
+
+

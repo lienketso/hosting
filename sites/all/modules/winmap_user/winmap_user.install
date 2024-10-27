@@ -1,0 +1,237 @@
+<?php
+function winmap_user_group_schema()
+{
+  $schema = array();
+  /**
+   * User group.
+   */
+  $schema['winmap_user_groups'] = array(
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'size' => 'big',
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'status' => array( //trạng thái
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'created' => array( //Ngày tạo
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'changed' => array( //Ngày cập nhật
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('id'),
+    'indexes' => array(
+      'wtr_name' => array('name'),
+      'wtr_created' => array('created'),
+      'wtr_changed' => array('changed'),
+    ),
+    );
+  $schema['winmap_user_permissions'] = array(
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'size' => 'big',
+      ),
+      'uid' => array(
+        'type' => 'varchar',//Id user
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'permission' => array( //Id permission khai báo php define
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'status' => array( //trạng thái
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('id')
+  );
+
+  $schema['winmap_user_group_permissions'] = array(
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'size' => 'big',
+      ),
+      'gid' => array(
+        'type' => 'varchar',//Group user id
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'permission' => array( //Id permission khai báo php define
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'status' => array( //trạng thái
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('id')
+  );
+  return $schema;
+}
+function winmap_user_update_7301(){
+  $schema = array();
+  $transaction = db_transaction();
+  try {
+    $schema['winmap_user_groups'] = array(
+      'fields' => array(
+        'id' => array(
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'size' => 'big',
+        ),
+        'name' => array(
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => ''
+        ),
+        'status' => array( //trạng thái
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => FALSE,
+          'default' => 0,
+        ),
+        'created' => array( //Ngày tạo
+          'type' => 'int',
+          'size' => 'big',
+          'not null' => FALSE,
+          'default' => 0,
+        ),
+        'changed' => array( //Ngày cập nhật
+          'type' => 'int',
+          'size' => 'big',
+          'not null' => FALSE,
+          'default' => 0,
+        ),
+      ),
+      'primary key' => array('id'),
+      'indexes' => array(
+        'wtr_name' => array('name'),
+        'wtr_created' => array('created'),
+        'wtr_changed' => array('changed'),
+      ),
+    );
+
+    //
+    $schema['winmap_user_permissions'] = array(
+      'fields' => array(
+        'id' => array(
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'size' => 'big',
+        ),
+        'uid' => array(
+          'type' => 'varchar',//Id user
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => ''
+        ),
+        'permission' => array( //Id permission khai báo php define
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'status' => array( //trạng thái
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+      ),
+      'primary key' => array('id')
+    );
+
+    $schema['winmap_user_group_permissions'] = array(
+      'fields' => array(
+        'id' => array(
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'size' => 'big',
+        ),
+        'gid' => array(
+          'type' => 'varchar',//Group user id
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => ''
+        ),
+        'permission' => array( //Id permission khai báo php define
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'status' => array( //trạng thái
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+      ),
+      'primary key' => array('id')
+    );
+
+    db_create_table('winmap_user_groups', $schema['winmap_user_groups']);
+    db_create_table('winmap_user_permissions', $schema['winmap_user_permissions']);
+    db_create_table('winmap_user_group_permissions', $schema['winmap_user_group_permissions']);
+  } catch (Exception $e) {
+    $transaction->rollback();
+    return $e->getMessage();
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function winmap_user_install() {
+
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function winmap_user_uninstall() {
+
+
+}

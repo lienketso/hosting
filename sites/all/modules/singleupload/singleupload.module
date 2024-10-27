@@ -1,0 +1,212 @@
+<?php
+
+
+$sf_path = drupal_get_path('module', 'singleupload');
+require_once $sf_path . '/singleupload.inc';
+
+
+/**
+ * Implements hook_element_info().
+ */
+function singleupload_element_info()
+{
+  $file_path = drupal_get_path('module', 'file');
+  $sf_path = drupal_get_path('module', 'singleupload');
+
+  $types['sf_managed_file'] = array(
+
+    '#input' => TRUE,
+    '#process' => array('sf_managed_file_process', 'sf_file_process', 'sf_image_process'),
+    '#value_callback' => 'file_managed_file_value',
+//    '#element_validate' => array('file_managed_file_validate'),
+    '#element_validate' => array('singleupload_managed_file_validate'),
+    '#pre_render' => array('file_managed_file_pre_render'),
+    '#theme' => 'file_managed_file',
+    '#theme_wrappers' => array('form_element'),
+    '#progress_indicator' => 'throbber',
+    '#progress_message' => NULL,
+    '#upload_validators' => array(),
+    '#upload_location' => NULL,
+    '#size' => 22,
+    '#extended' => true,
+    '#attached' => array(
+      'css' => array($file_path . '/file.css'),
+      'js' => array($sf_path . '/sf.js', $file_path . '/file.js'),
+    ),
+  );
+  return $types;
+
+}
+
+function singleupload_managed_file_validate(&$element, &$form_state) {
+  // If referencing an existing file, only allow if there are existing
+  // references. This prevents unmanaged files from being deleted if this
+  // item were to be deleted.
+  $clicked_button = end($form_state['triggering_element']['#parents']);
+  if ($clicked_button != 'remove_button' && !empty($element['fid']['#value'])) {
+    if ($file = file_load($element['fid']['#value'])) {
+      if ($file->status == FILE_STATUS_PERMANENT) {
+        $references = file_usage_list($file);
+        if (empty($references)) {
+          form_error($element, t('The file used in the !name field may not be referenced.', array('!name' => $element['#title'])));
+        }
+      }
+    }
+    else {
+      form_error($element, t('The file referenced by the !name field does not exist.', array('!name' => $element['#title'])));
+    }
+  }
+
+  // Check required property based on the FID.
+  if ($element['#required'] && empty($element['fid']['#value']) && !in_array($clicked_button, array('upload_button', 'remove_button'))) {
+    form_error($element['upload'], t('!name field is required.', array('!name' => $element['#title'])));
+  }
+
+  // Consolidate the array value of this field to a single FID.
+  if (!$element['#extended']) {
+//    form_set_value($element, $element['fid']['#value'], $form_state);
+  }
+}
+
+function sf_managed_file_process ($element, &$form_state, &$form) {
+  $element = file_managed_file_process($element, $form_state, $form);
+  if (!empty($element['upload']['#attached']['js'][0]['data']['file'])) {
+    $element['upload']['#attached']['js'][0]['data']['sf'] = $element['upload']['#attached']['js'][0]['data']['file'];
+  }
+  unset($element['upload']['#attached']['js'][0]['data']['file']);
+  return $element;
+}
+
+function sf_file_process ($element, &$form_state, &$form) {
+  return $element;
+}
+
+function sf_image_process ($element, &$form_state, &$form) {
+  $item = $element['#value'];
+  $item['fid'] = $element['fid']['#value'];
+
+  $settings = array('alt_field' => $element['#alt_field'], 'title_field'=> $element['#title_field']);
+  $widget_settings = array(
+    'preview_image_style' => $element['#preview_image_style'],
+  );
+
+  $element['#theme'] = 'sf_image_widget';
+  $element['#attached']['css'][] = drupal_get_path('module', 'image') . '/image.css';
+
+  // Add the image preview.
+  if ($element['#file'] && $widget_settings['preview_image_style']) {
+    $variables = array(
+      'style_name' => $widget_settings['preview_image_style'],
+      'path' => $element['#file']->uri,
+    );
+
+    // Determine image dimensions.
+    if (isset($element['#value']['width']) && isset($element['#value']['height'])) {
+      $variables['width'] = $element['#value']['width'];
+      $variables['height'] = $element['#value']['height'];
+    }
+    else {
+      $info = image_get_info($element['#file']->uri);
+
+      if (is_array($info)) {
+        $variables['width'] = $info['width'];
+        $variables['height'] = $info['height'];
+      }
+      else {
+        $variables['width'] = $variables['height'] = NULL;
+      }
+    }
+
+    $element['preview'] = array(
+      '#type' => 'markup',
+      '#markup' => theme('image_style', $variables),
+    );
+
+    // Store the dimensions in the form so the file doesn't have to be accessed
+    // again. This is important for remote files.
+    $element['width'] = array(
+      '#type' => 'hidden',
+      '#value' => $variables['width'],
+    );
+    $element['height'] = array(
+      '#type' => 'hidden',
+      '#value' => $variables['height'],
+    );
+  }
+
+  // Add the additional alt and title fields.
+  $element['alt'] = array(
+    '#title' => t('Alternate text'),
+    '#type' => 'textfield',
+    '#default_value' => isset($item['alt']) ? $item['alt'] : '',
+    '#description' => t('This text will be used by screen readers, search engines, or when the image cannot be loaded.'),
+    // @see http://www.gawds.org/show.php?contentid=28
+    '#maxlength' => 512,
+    '#weight' => -2,
+    '#access' => (bool) $item['fid'] && $settings['alt_field'],
+  );
+  $element['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => isset($item['title']) ? $item['title'] : '',
+    '#description' => t('The title is used as a tool tip when the user hovers the mouse over the image.'),
+    '#maxlength' => 1024,
+    '#weight' => -1,
+    '#access' => (bool) $item['fid'] && $settings['title_field'],
+  );
+
+  return $element;
+}
+
+
+/**
+ * Implements hook_theme().
+ */
+function singleupload_theme($existing, $type, $theme, $path)
+{
+    return array(
+      // Theme functions in image.field.inc.
+      'sf_image_widget' => array(
+        'render element' => 'element',
+      ),
+    );
+}
+
+function theme_sf_image_widget($variables) {
+  $element = $variables['element'];
+  $output = '';
+  $output .= '<div class="image-widget form-managed-file form-singleupload-managed-file clearfix">';
+    if (isset($element['preview'])) {
+      $output .= '<div class="image-preview">';
+      $output .= drupal_render($element['preview']);
+      $output .= '</div>';
+    }
+
+    $output .= '<div class="image-widget-data singleupload-image-widget-data">';
+
+      $output .= '<div class="singleupload-image-widget-item from-group">';
+        if ($element['fid']['#value'] != 0) {
+          $element['filename']['#markup'] .= ' <span class="file-size">(' . format_size($element['#file']->filesize) . ')</span> ';
+          $output .= drupal_render($element['filename']);
+          if (!empty($element['remove_button'])) {
+            $output .= drupal_render($element['remove_button']);
+          }
+        }elseif(!empty($element['upload_button'])) {
+          $output .= '<div class="input-group">';
+            $output .= drupal_render($element['upload']);
+            $output .= '<span class="input-group-btn">';
+              $output .= drupal_render($element['upload_button']);
+            $output .= '</span>';
+          $output .= '</div>';
+        }
+      $output .= '</div>';
+
+      $output .= '<div class="singleupload-image-widget-item from-group">';
+        $output .= drupal_render_children($element);
+      $output .= '</div>';
+
+    $output .= '</div>';
+
+  $output .= '</div>';
+  return $output;
+}

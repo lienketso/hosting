@@ -1,0 +1,8 @@
+name = Winmap hosting
+description = Winmap hosting
+
+package = Winmap
+core = 7.x
+version = "7.x-3.05"
+core = "7.x"
+datestamp = "1419029284"

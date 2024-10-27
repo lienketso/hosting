@@ -1,0 +1,224 @@
+<?php
+
+
+function winmap_user_menu() {
+  $items = array();
+
+  $items['user/%user/change-password'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'title' => 'Đổi mật khẩu',
+    'page callback' => array('winmap_user_user_change_password_page'),
+    'page arguments' => array(1),
+    'access callback' => 'winmap_user_user_accep_pprofile',
+    'file' => 'winmap_user.inc',
+  );
+
+  $items['admin/user/groups'] = array(
+    'title' => 'Danh sách nhóm user',
+    'page callback' => 'winmap_user_group_page',
+    'access arguments' => array('administer users'),
+    'type' => MENU_LOCAL_ACTION,
+    'file' => 'winmap_user.inc',
+  );
+
+  $items['admin/user/groups/create'] = array(
+    'title' => 'Thêm nhóm mới',
+    'page callback' => 'winmap_user_group_create_page',
+    'access arguments' => array('administer users'),
+    'type' => MENU_LOCAL_ACTION,
+    'file' => 'winmap_user.inc',
+  );
+
+  $items['admin/user/group/%user_group/edit'] = array(
+    'title' => 'Edit Host',
+    'page callback' => 'winmap_user_group_edit_page',
+    'page arguments' => array(3), // '2' lấy tham số thứ hai từ URL (ID)
+    'access arguments' => array('access content'),
+    'file' => 'winmap_user.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function winmap_user_menu_alter(&$items) {
+  $items['user']['page callback'] = '_winmap_user_user_page';
+}
+
+
+function winmap_theme_callback () {
+  return 'winmap_theme';
+}
+
+function _winmap_user_user_page() {
+  global $user;
+  if (!empty($user->uid)) {
+    drupal_goto('user/' . $user->uid);
+  }
+  else {
+    return drupal_get_form('user_login');
+  }
+}
+
+/**
+ * Load.
+ */
+function user_group_load($id)
+{
+  $user_group = null;
+  try {
+    $result = db_select('winmap_user_groups', 'wh')
+      ->fields('wh')
+      ->condition('id', $id, '=')
+      ->execute()
+      ->fetchObject();
+
+    // Kiểm tra nếu không tìm thấy bản ghi.
+    if (!empty($result)) {
+      $user_group = $result;
+    }
+
+  } catch (Exception $e) {
+    return $e->getMessage();
+  }
+  return $user_group;
+}
+
+function user_group_save($user_group){
+  $op = null;
+  $transaction = db_transaction();
+  $saved = null;
+  if (is_array($user_group)) {
+    $user_group = (object)$user_group;
+  }
+
+  if (empty($user_group->id)) {
+    $op = 'insert';
+  }else {
+    $op = 'update';
+  }
+
+  try {
+    module_invoke_all('winmap_user_group_presave', $user_group, $op);
+    if ($op == 'insert') {
+      $user_group->created = $user_group->changed = REQUEST_TIME;
+      $saved = db_insert('winmap_user_groups')
+        ->fields((array) $user_group)
+        ->execute();
+      if (!$saved) {
+        watchdog('winmap_user_groups', 'Failed to insert user group with data: <pre>@data</pre>', ['@data' => print_r($user_group, TRUE)], WATCHDOG_ERROR);
+      }
+      module_invoke_all('winmap_user_group_insert', $user_group);
+    } elseif($op == 'update') {
+      $saved = db_update('winmap_user_groups')
+        ->fields((array)$user_group)
+        ->condition('id', $user_group->id)
+        ->execute();
+      if (!$saved) {
+        drupal_set_message(t('Failed to update customer.'), 'error');
+      }
+      module_invoke_all('winmap_user_group_update', $user_group);
+    }
+  } catch (Exception $e) {
+    drupal_set_message(t('Failed to update customer.'.$e->getMessage()), 'error');
+    $transaction->rollback();
+  }
+  return $saved;
+}
+
+function winmap_user_user_change_password_form($form, &$form_state, $account) {
+  $form = array();
+  if (!isset($form_state['user'])) {
+    $form_state['user'] = $account;
+  }
+
+  if (empty($_SESSION['pass_reset_' . $account->uid])) {
+    $form['curent-pass'] = array(
+      '#type' => 'password',
+      '#title' => 'Mặt khẩu cũ',
+      '#element_validate' => array('winmap_user_change_password_form_validate_curent_password'),
+      '#required' => TRUE,
+    );
+  }
+
+  $form['news-pass'] = array(
+    '#type' => 'password_confirm',
+    '#required' => TRUE,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Lưu',
+    '#prefix' => '<div id="user-change-password-actions">',
+    '#suffix' => '</div>',
+  );
+
+  return $form;
+}
+
+function winmap_user_change_password_form_validate_curent_password($element, &$form_state) {
+  global $user;
+  $account = $form_state['user'];
+  if ($account->uid == $user->uid) {
+    require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
+    $current_pass_failed = strlen(trim($form_state['values']['curent-pass'])) == 0 || !user_check_password($form_state['values']['curent-pass'], $account);
+    if ($current_pass_failed) {
+      form_error($element, 'Mạt khẩu không đúng');
+    }
+  }
+  else {
+    form_error($element, 'Bạn không có quyền thay đổi mật khẩu');
+  }
+}
+
+function winmap_user_user_change_password_form_submit($form, $form_state) {
+  global $user;
+  $account = $form_state['user'];
+  if (strlen($form_state['values']['news-pass']) < 6) {
+    form_error($form['news-pass'], 'Mật khẩu phải  lớn hơn hoặc bàng 6 ký tự');
+  }
+  else {
+    if (!empty($user->uid) && ($user->uid == $account->uid)) {
+      require_once DRUPAL_ROOT . '/includes/bootstrap.inc';
+      drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
+      require_once DRUPAL_ROOT . '/includes/password.inc';
+
+      $newhash = user_hash_password($form_state['values']['news-pass']);
+      try {
+        $updatepass = db_update('users')
+          ->fields(array('pass' => $newhash))
+          ->condition('uid', $account->uid, '=')
+          ->execute();
+        if ($updatepass) {
+          cache_clear_all();
+          if (!empty($_SESSION['pass_reset_' . $form_state['user']->uid])) {
+            unset($_SESSION['pass_reset_' . $form_state['user']->uid]);
+          }
+          drupal_set_message('Thay đổi mật khẩu thành công');
+          drupal_goto('user/' . $account->uid.'/edit');
+        }
+
+      } catch (Exception $e) {
+        drupal_set_message('Hệ thống đang bận vui lòng quai lại sau ít phút', 'error');
+      }
+    }
+
+  }
+}
+
+function winmap_user_form_user_login_alter(&$form, &$form_state, $form_id) {
+  drupal_set_title('Đăng nhập');
+  $form['name']['#title'] ='';
+  $form['name']['#attributes']['placeholder'] = 'Tên đăng nhập';
+  $form['pass']['#title'] ='';
+  $form['pass']['#attributes']['placeholder'] = 'Mật khẩu';
+  $form['actions']['submit']['#suffix'] =   l(t('Đăng ký thành viên'), 'user/register');
+  $form['#theme'] = array('winmap_user_form_user_login_from');
+}
+
+
+
+include(DRUPAL_ROOT."/sites/all/modules/winmap_user/winmap_user_group.forms.php");

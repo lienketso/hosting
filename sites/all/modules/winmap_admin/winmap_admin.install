@@ -1,0 +1,90 @@
+<?php
+
+function winmap_admin_install() {
+  $path[] = 'administrator';
+  $path[] = 'admin';
+  $path[] = 'admin/*';
+  $path[] = 'manager';
+  $path[] = 'manager/*';
+  $path[] = 'user';
+  $path[] = 'user/*';
+  variable_set('admin_theme_path', implode("\n", $path));
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function winmap_admin_schema() {
+  $schema['winmap_admin_block'] = array(
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'icon' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => TRUE,
+      ),
+      'position' => array(
+        'type' => 'float',
+        'size' => 'normal',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  $schema['winmap_admin_items'] = array(
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'bid' => array(
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'link' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'icon' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => TRUE,
+      ),
+      'position' => array(
+        'type' => 'float',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'size' => 'normal',
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+  return $schema;
+}
+
+/**
+ * Implementation of hook_uninstall()
+ */
+function winmap_admin_uninstall() {
+  drupal_uninstall_schema('winmap_admin_block');
+  drupal_uninstall_schema('winmap_admin_items');
+}

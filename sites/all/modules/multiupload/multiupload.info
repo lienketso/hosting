@@ -1,0 +1,6 @@
+name = Multiupload
+description = Multiupload
+core = 7.x
+version = "7.x-1.01"
+core = "7.x"
+datestamp = "1419029284"

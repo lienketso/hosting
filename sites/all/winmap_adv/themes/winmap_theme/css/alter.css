@@ -1,0 +1,54 @@
+/* winmap theme core */
+
+@font-face {
+  font-family: Roboto-Regular;
+  src: url(../font/roboto/Roboto-Regular.ttf);
+}
+
+@font-face {
+  font-family: Roboto-Medium;
+  src: url(../font/roboto/Roboto-Medium.ttf);
+}
+
+@font-face {
+  font-family: Roboto-MediumItalic;
+  src: url(../font/roboto/Roboto-MediumItalic.ttf);
+}
+
+@font-face {
+  font-family: Roboto-Thin;
+  src: url(../font/roboto/Roboto-Thin.ttf);
+}
+
+@font-face {
+  font-family: Roboto-ThinItalic;
+  src: url(../font/roboto/Roboto-ThinItalic.ttf);
+}
+
+@font-face {
+  font-family: Roboto-Light;
+  src: url(../font/roboto/Roboto-Light.ttf);
+}
+
+@font-face {
+  font-family: Roboto-Italic;
+  src: url(../font/roboto/Roboto-Italic.ttf);
+}
+
+@font-face {
+  font-family: Roboto-Bold;
+  src: url(../font/roboto/Roboto-Bold.ttf);
+}
+@font-face {
+  font-family: Roboto-BoldItalic;
+  src: url(../font/roboto/Roboto-BoldItalic.ttf);
+}
+
+
+img {
+    max-width: 100%;
+}
+
+.tabs .nav-tabs{
+    margin-bottom: 0px;
+}

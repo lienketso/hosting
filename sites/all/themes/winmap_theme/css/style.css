@@ -1,0 +1,246 @@
+/*--------------------- login page -----------------------*/
+
+.page-login {
+    padding-top: 50px;
+    padding-bottom: 50px;
+    background: -webkit-linear-gradient(90deg, #16222a 10%, #3a6073 90%);
+    background: -moz-linear-gradient(90deg, #16222a 10%, #3a6073 90%);
+    background: -ms-linear-gradient(90deg, #16222a 10%, #3a6073 90%);
+    background: -o-linear-gradient(90deg, #16222a 10%, #3a6073 90%);
+    background: linear-gradient(90deg, #16222a 10%, #3a6073 90%);
+    background-image: url('/sites/all/themes/winmap_admin_theme/images/login-page-bg.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
+}
+
+.page-login .page-login-container {
+    max-width: 1066px;
+}
+
+.page-login .block-login-header {
+    color: white;
+}
+
+.page-login .block-login-header .block-login-logo {
+    margin-bottom: 30px;
+}
+
+.page-login .block-login-header .block-login-hotline {
+    margin-bottom: 30px;
+    text-align: right;
+}
+
+.page-login .block-login-header .block-login-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.page-login .block-login-body {
+    padding: 40px;
+    background-color: white;
+    border-radius: 5px;
+    min-height: 338px;
+}
+
+.page-login .block-login-site-name {
+    margin-top: 0px;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    color: #3b88c8;
+    font-size: 26px;
+    font-weight: normal;
+}
+
+.page-login .block-login-footer {
+    margin-top: 20px;
+    margin-bottom: 50px;
+    text-align: center;
+    color: white;
+}
+
+.page-login form input,
+.page-login form button {
+    height: 38px;
+    border-radius: 0px;
+}
+
+
+/*--------------------- Message dialog -----------------------*/
+
+#message-model .modal-dialog {
+    margin: 20% auto;
+}
+
+#message-model .modal-content {
+    border-radius: 4px;
+}
+
+#message-model button.close {
+    background-image: url(/sites/all/themes/winmap_theme/img/icons/close.jpg);
+    width: 36px;
+    height: 36px;
+    text-indent: -9999px;
+    opacity: 1;
+    top: -18px;
+    right: -18px;
+    position: absolute;
+    background-size: cover;
+    border-radius: 50%;
+}
+
+.tabs {
+    position: fixed;
+    bottom: 50%;
+    z-index: 11;
+    right: 30px;
+    height: 52px;
+}
+
+.tabs>.element-invisible ::before {
+    content: "\f0c9";
+    display: block;
+    font-family: FontAwesome;
+    font-size: 22px;
+}
+
+.tabs>ul {
+    left: 0;
+    right: 0;
+    text-align: center;
+    margin: 0;
+    border-bottom: none;
+    width: 52px;
+}
+
+.tabs .nav-tabs>li {
+    float: left;
+    margin-bottom: 8px;
+}
+
+.tabs .nav-tabs>li.active>a,
+.tabs .nav-tabs>li.active>a:hover,
+.tabs .nav-tabs>li.active>a:focus,
+.tabs .nav-tabs>li>a {
+    background-color: transparent;
+    border: none;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    text-decoration: none;
+    display: flex;
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    color: white;
+    text-transform: uppercase;
+    text-align: center;
+    font-size: 13px;
+    height: 52px;
+    min-width: 52px;
+    padding: 0px;
+    background-color: #f4bc00;
+    border-radius: 50%;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+}
+
+
+/*---------------- slider ----------- */
+
+.winmap-swiper-desktop,
+.desktop {
+    display: none;
+}
+
+.winmap-swiper-tablet,
+.tablet {
+    display: none;
+}
+
+.winmap-swiper-mobile,
+.mobile {
+    display: none;
+}
+
+#main-slider {
+    position: relative;
+    z-index: 2;
+}
+
+.swiper-slide {
+    background: #fff;
+    background-position: center center;
+    background-size: cover;
+}
+
+.swiper-slide-link>img,
+.swiper-slide>img {
+    width: 100%;
+    max-width: none;
+    /* height: 100%; */
+    -ms-transform: translate(-50%, -0%);
+    -webkit-transform: translate(-50%, -0%);
+    -moz-transform: translate(-50%, -0%);
+    transform: translate(-50%, -0%);
+    position: relative;
+    left: 50%;
+    top: 0%;
+}
+
+#main-slider .swiper-container {
+    width: 100%;
+    /*height: 502px;*/
+}
+
+#main-slider .swiper-button-next,
+#main-slider .swiper-button-prev {
+    display: none !important;
+}
+
+
+/*--------------- owl --------------*/
+
+.owl-prev {
+    font-size: 0px;
+    width: 19px;
+    height: auto;
+    position: absolute;
+    top: 50%;
+    left: -30px;
+    margin-top: -16px;
+    background-image: url(/sites/all/themes/winmap_theme/img/icons/left-arrow.png);
+    background-size: cover;
+}
+
+.owl-next {
+    font-size: 0px;
+    width: 19px;
+    height: auto;
+    position: absolute;
+    top: 50%;
+    right: -30px;
+    margin-top: -16px;
+    background-image: url(/sites/all/themes/winmap_theme/img/icons/right-arrow.png);
+    background-size: cover;
+}
+
+
+/*---------- Header -----------*/
+.header {
+  border: none;
+}
+
+/*---------- End header -----------*/
+
+/*---------- footer -----------*/
+.footer {
+  border: none;
+}
+
+/*---------- End footer -----------*/

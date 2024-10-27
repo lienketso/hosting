@@ -1,0 +1,179 @@
+<?php
+
+
+/* Load configs
+ *
+ * */
+include(DRUPAL_ROOT."/sites/all/modules/winmap_customer/winmap_customer.config.php");
+/* Load utilities
+ *
+ * */
+include(DRUPAL_ROOT."/sites/all/modules/winmap_customer/winmap_customer.utilities.php");
+
+
+function winmap_customer_init() {
+
+}
+
+
+/**
+ * Implements hook_menu()
+ */
+function winmap_customer_menu() {
+  $items = array();
+  $items['admin/enterprises'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'winmap_customer_page_callback',
+    'title' => 'Danh sách khách hàng',
+    'access arguments' => array('winmap_customer module'),
+    'weight' => 1,
+    'file' => 'winmap_customer.inc',
+  );
+
+  $items['admin/enterprises/create'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'winmap_admin_customer_create_page',
+    'title' => 'Thêm khách hàng mới',
+    'access arguments' => array('winmap_customer module'),
+    'weight' => 1,
+    'file' => 'winmap_customer.inc',
+  );
+
+  //edit customer
+  $items['admin/customer/%customer/edit'] = array(
+    'title' => 'Edit Host',
+    'page callback' => 'winmap_admin_customer_edit_page',
+    'page arguments' => array(2), // '2' lấy tham số thứ hai từ URL (ID)
+    'access arguments' => array('winmap_customer module'),
+    'file' => 'winmap_customer.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function winmap_customer_theme($existing, $type, $theme, $path)
+{
+  return array(
+    'winmap_customer_form' => array(
+      'render element' => 'form',
+      'template' => 'winmap_customer_form',
+      'path' => drupal_get_path('module', 'winmap_customer') . '/templates/forms/admin',
+    ),
+
+  );
+}
+
+
+
+/**
+ * Implements hook_permission().
+ */
+function winmap_customer_permission() {
+  return array(
+    'winmap_customer module' => array(
+      'title' => t('winmap_customer module'),
+      'description' => t('Access for winmap_customer module'),
+    )
+  );
+}
+
+/**
+ * Load.
+ */
+function customer_load($id)
+{
+  $customer = null;
+  try {
+    $result = db_select('winmap_enterprises', 'wh')
+      ->fields('wh')
+      ->condition('id', $id, '=')
+      ->execute()
+      ->fetchObject();
+
+    // Kiểm tra nếu không tìm thấy bản ghi.
+    if (!empty($result)) {
+      $customer = $result;
+    }
+
+  } catch (Exception $e) {
+    return $e->getMessage();
+  }
+  return $customer;
+}
+
+/**
+ * Last changed.
+ */
+function winmap_customer_last_changed($id) {
+  $changed = db_query('SELECT changed FROM {winmap_enterprises} WHERE id = :id', array(':id' => $id))->fetch()->changed;
+  if (empty($changed)) {
+    $changed = 0;
+  }
+  return $changed;
+}
+
+
+function customer_save($customer){
+  global $user;
+  $transaction = db_transaction();
+  $op = null;
+//  if (is_array($customer)) {
+//    $customer = (object)$customer;
+//  }
+
+  if (empty($customer->id)) {
+    $op = 'insert';
+  }else {
+    $op = 'update';
+  }
+
+  $saved = null;
+
+  try {
+    module_invoke_all('winmap_customer_presave', $customer, $op);
+    if ($op == 'insert') {
+       $customer->created = $customer->changed = REQUEST_TIME;
+//        $saved = drupal_write_record('winmap_enterprises', $customer);
+        $saved = db_insert('winmap_enterprises')
+        ->fields((array) $customer)
+        ->execute();
+        if (!$saved) {
+          watchdog('winmap_enterprises', 'Failed to insert customer with data: <pre>@data</pre>', ['@data' => print_r($customer, TRUE)], WATCHDOG_ERROR);
+        }
+
+    } elseif ($op == 'update') {
+//      $saved = drupal_write_record('winmap_enterprises', $customer, array('id'));
+      $saved = db_update('winmap_enterprises')
+        ->fields((array)$customer)
+        ->condition('id', $customer->id)
+        ->execute();
+      if (!$saved) {
+        drupal_set_message(t('Failed to update customer.'), 'error');
+      }
+    }
+  }catch (Exception $e){
+    $transaction->rollback();
+    drupal_set_message(t('An error occurred while saving the customer: @message', array('@message' => $e->getMessage())), 'error');
+  }
+  return $saved;
+}
+
+
+/* Load forms
+ *
+ *
+ * */
+include(DRUPAL_ROOT."/sites/all/modules/winmap_customer/winmap_customer.forms.php");
+
+
+
+
+
+
+
+

@@ -1,0 +1,666 @@
+.small-box > .inner > p:last-child {
+    margin-bottom: 10px;
+}
+
+
+.alert a.close {
+    text-decoration: none;
+}
+
+th.active > a > img {
+    display: inline;
+    float: right;
+}
+
+.chosen-container.form-control {
+    border: none;
+    width: 100% !important;
+    padding: 0px;
+    height: auto !important;
+}
+
+.image-widget-data .input-group {
+    float: left;
+}
+
+.image-widget-data > button {
+    margin-bottom: 15px;
+}
+
+div.admin .right {
+    margin-right: 0px;
+    width: 50%;
+    padding-left: 10px;
+}
+
+div.admin .left {
+    margin-left: 0px;
+    width: 50%;
+    padding-right: 10px;
+}
+
+div.admin-panel.panel {
+    padding: 0px;
+    margin-bottom: 20px;
+}
+
+div.admin-panel.panel .body.panel-body {
+    padding: 15px;
+}
+
+.admin-panel .item-list,
+.admin-panel .admin-list,
+.admin-list
+{
+    background: transparent;
+    padding: 0px;
+    border: 0px;
+}
+
+.admin-panel h3 span.icon,
+.admin-list li a span.icon {
+    position: absolute;
+    left: 10px;
+}
+
+.admin-list-compact li a span.icon {
+    top: 5px;
+}
+
+.admin-panel h3 {
+    position: relative;
+    padding: 0px 5px 0px 50px;
+    margin: 0px;
+    min-height: 30px;
+}
+
+.node-type-list li,
+.admin-list li {
+    position: relative;
+    padding: 10px 5px 9px 50px;
+    margin: 0px;
+    min-height: 30px;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+.node-type-list li:last-child,
+.admin-list li:last-child {
+    border-bottom: 1px solid transparent;
+}
+
+.admin-panel h3 {
+    background: #f4f4f4;
+    line-height: 30px;
+}
+
+.content-header > .primary-local-tasks {
+    float: right;
+    padding: 0px;
+    margin: 0px;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}
+
+.content-header > .primary-local-tasks li {
+    display: inline-block;
+    list-style: none;
+}
+
+.content-header > .primary-local-tasks  li a {
+    display: inline-block;
+    padding: 6px 12px;
+    margin-bottom: 0;
+    font-size: 14px;
+    font-weight: normal;
+    line-height: 1.42857143;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    -ms-touch-action: manipulation;
+    touch-action: manipulation;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    background-image: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    /*border: 1px solid transparent;*/
+    color: #fff;
+    background-color: #00a65a;
+    border-color: #008d4c;
+}
+
+
+.content-header > .primary-local-tasks  li a:hover {
+    color: #fff;
+    background-color: #008d4c;
+    border-color: #398439;
+}
+
+.version-status > .icon{
+    float: right;
+}
+
+
+.version-links {
+    float: right;
+}
+.version-links ul {
+    padding: 0px;
+    margin: 0px;
+}
+
+.version-links ul > li {
+    display: inline-block;
+    list-style: none;
+    padding: 0px 5px 0px 5px;
+}
+
+
+.chosen-container-multi .chosen-choices {
+    border: 1px solid #d2d6de;
+    -webkit-box-shadow: none;
+    box-shadow:none;
+    background-image: none;
+    border-radius: 0px;
+    padding: 3px;
+}
+
+.chosen-container .chosen-drop {
+    margin-top: 10px;
+}
+.chosen-container-multi .chosen-choices li.search-field {
+    padding: 3px 20px 3px 5px;
+}
+
+.chosen-container-active .chosen-choices {
+    border: 1px solid #3c8dbc;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+    -webkit-box-shadow: none;
+    box-shadow:none;
+}
+
+@media (max-width: 991px) {
+    .content-header > .primary-local-tasks {
+        position: relative;
+        margin-top: 5px;
+        top: 0;
+        right: 0;
+        float: none;
+    }
+}
+
+
+#views-display-menu-tabs {
+    float: none !important;
+}
+
+.ctools-twisty {
+    width: 4px;
+}
+
+.views-ui-display-tab-bucket .ctools-button-processed button {
+    height: 18px;
+    padding: 0px 10px 0px 10px;
+    border: none;
+    background: none;
+    margin: 0px;
+    line-height: 18px;
+}
+
+#views-display-menu-tabs .action-list button {
+    width: 100%;
+}
+
+.treeTable tr.collapsed > td:first-child,
+.treeTable tr.expanded td:first-child
+{
+    padding-left: 19px !important;
+}
+
+#edit-options-alter-text-wrapper {
+    height: auto !important;
+}
+
+
+#system-image-toolkit-settings #edit-image-jpeg-quality{
+    width: calc(100% - 30px);
+    display: inline-block;
+    margin-right: 5px;
+}
+
+
+#winmap-user-driver-empty-time-form .form-item.form-type-checkbox label {
+    position: relative;
+    padding-left: 30px;
+}
+#winmap-user-driver-empty-time-form .form-item.form-type-checkbox label input {
+    position: absolute;
+    width: 0px;
+    height: 0px;
+    display: block;
+    opacity: 0;
+}
+#winmap-user-driver-empty-time-form .form-item.form-type-checkbox label span.checkmark {
+    width: 20px;
+    height: 20px;
+    background-image: url(/sites/all/themes/winmap_theme/img/icons/icon-111.png);
+    margin-right: 8px;
+    display: block;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+#winmap-user-driver-empty-time-form .form-item.form-type-checkbox label input:checked ~ span.checkmark {
+    background-image: url(/sites/all/themes/winmap_theme/img/icons/icon-112.png);
+}
+#winmap-user-driver-empty-time-form #edit-hours {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+#winmap-user-driver-empty-time-form #edit-hours .form-item {
+    width: 16.666%;
+    margin-bottom: 15px;
+}
+
+#winmap-user-driver-empty-time-form .form-item-hours {
+    padding: 20px;
+    background-color: #f2f2f2;
+}
+
+#winmap-user-driver-empty-time-form .form-item-hours > label {
+    font-size: 15px;
+    font-family: Roboto-Regular;
+    margin-bottom: 15px;
+    font-weight: normal;
+}
+
+
+
+#winmap-user-driver-empty-time-form button[type="submit"] {
+    background-color: #121d70;
+    border-color: #121d70;
+    width: 250px;
+    margin: auto;
+    color: white;
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    height: 44px;
+}
+
+
+#winmap-user-driver-empty-time-form .form-header {
+    padding: 20px;
+    background-color: #f3b519;
+    color: #121d70;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+/*---- */
+.page-search-air-car-header,
+.page-booking-air-car-header {
+    background-color: #001539;
+    color: white;
+    padding: 20px 20px;
+}
+.page-search-air-car-header-point,
+.page-booking-air-car-header-point {
+    font-weight: 600;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+.page-search-air-car-header-point .fa,
+.page-booking-air-car-header-point .fa {
+    font-size: 12px;
+    margin-left: 8px;
+    margin-right: 8px;
+    color: #e5ac1b;
+}
+.page-search-air-car-header-group,
+.page-booking-air-car-header-group {
+    display: flex;
+    align-items: center;
+}
+.page-search-air-car-header-group > div,
+.page-booking-air-car-header-group > div {
+    margin-right: 15px;
+    padding-right: 15px;
+    border-right: 1px solid #747e90;
+}
+.page-search-air-car-header-group > div:last-child,
+.page-booking-air-car-header-group > div:last-child {
+    margin-right: 0px;
+    padding-right: 0px;
+    border-right: transparent;
+}
+.page-search-air-car-header-group > div > .fa,
+.page-booking-air-car-header-group > div > .fa {
+    color: #b9bcc1;
+    margin-right: 6px;
+    margin-top: 1px;
+}
+.page-search-air-car-header a.change-search,
+.page-search-air-car-header a.change-search:hover,
+.page-search-air-car-header a.change-search:active,
+.page-search-air-car-header a.change-search:focus,
+.page-search-air-car-header a.change-search:focus:active,
+.page-booking-air-car-header a.change-search,
+.page-booking-air-car-header a.change-search:hover,
+.page-booking-air-car-header a.change-search:active,
+.page-booking-air-car-header a.change-search:focus,
+.page-booking-air-car-header a.change-search:focus:active {
+    display: table;
+    height: 44px;
+    line-height: 44px;
+    padding-left: 15px;
+    padding-right: 15px;
+    background-color: #e5ac1b;
+    color: white;
+    border-radius: 3px;
+    font-weight: 600;
+    text-decoration: none;
+}
+.page-search-air-car-header-container-inner {
+    display: flex;
+    justify-content: space-between;
+}
+.page-booking-air-car-header-container-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.page-search-air-car-header-left {
+    width: calc(100% - 175px);
+}
+.page-search-air-car-body-right .page-search-air-car-body-right-title {
+    color: #333;
+    font-size: 18px;
+    margin-top: 0px;
+    margin-bottom: 30px;
+}
+.page-search-air-car-body-right .page-search-air-car-body-right-title b {
+    color: #f3b519;
+    font-size: 24px;
+    font-weight: 600;
+    font-weight: normal;
+}
+.page-search-air-car-body {
+    margin-top: 44px;
+}
+.page-search-air-car-body-left-container .page-search-air-car-body-left-title {
+    font-weight: 600;
+    font-size: 24px;
+    margin-top: 0px;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+}
+
+
+.page-booking-air-car-body-left-container {
+    background-color: #ddd;
+    padding-top: 22px;
+}
+.page-booking-air-car-body-left-container > h3.title {
+    font-weight: 600;
+    font-size: 20px;
+    margin-bottom: 20px;
+    margin-top: 0px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+.page-booking-air-car-body-right-container {
+    background-color: white;
+    padding: 22px 15px;
+}
+.page-booking-air-car-body-right-container > h3.title {
+    font-weight: 600;
+    font-size: 24px;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+    position: relative;
+    text-transform: uppercase;
+    margin-top: 0px;
+}
+
+.page-booking-air-car-infor-start-point {
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #a9a9a9;
+}
+.page-booking-air-car-infor-end-point {
+    margin-bottom: 30px;
+}
+.page-booking-air-car-infor-start-point h4.title,
+.page-booking-air-car-infor-end-point h4.title {
+    font-size: 14px;
+    color: #545454;
+    margin-top: 0px;
+    margin-bottom: 15px;
+}
+.page-booking-air-car-body-right-container > h3.title::before {
+    content: '';
+    width: 60px;
+    display: block;
+    height: 1px;
+    position: absolute;
+    border-bottom: 1px solid #f3b519;
+    bottom: 0px;
+}
+.page-booking-air-car-body-right-container > h3.title::after {
+    content: '';
+    width: 290px;
+    display: block;
+    height: 1px;
+    border-bottom: 1px dashed #b2b2b2;
+    position: absolute;
+    bottom: 0px;
+}
+.page-booking-air-car-infor-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 195px;
+    background-color: white;
+    border: 2px solid #f3b519;
+    margin-bottom: 20px;
+}
+.page-booking-air-car-infor-group {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+.page-booking-air-car-infor-title {
+    font-weight: 600;
+    font-size: 20px;
+    color: #212c6f;
+    margin-top: 0px;
+    margin-bottom: 20px;
+}
+.page-booking-air-car-infor-start-point-container,
+.page-booking-air-car-infor-end-point-container {
+    color: #000;
+}
+.page-booking-air-car-infor-price {
+    background-color: #f3b519;
+    display: flex;
+    align-items: center;
+    height: 64px;
+    width: 100%;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+
+.booking-infor-item ._label {
+    margin-right: 5px;
+    display: inline-block;
+    width: 120px;
+    font-family: Roboto-Medium;
+}
+.booking-infor-item ._text {
+    margin-right: 5px;
+    display: inline-block;
+}
+.booking-infor-group-container > h3.title {
+    font-family: Roboto-Medium;
+    font-size: 18px;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+}
+.booking-infor-code ._label {
+    font-size: 16px;
+}
+.booking-infor-code ._text {
+    font-size: 22px;
+    color: #fcb70f;
+}
+.booking-infor-price ._text {
+    font-size: 26px;
+    color: #fcb70f;
+    text-align: right;
+    width: 100%;
+}
+
+.page-booking-air-car-infor-price {
+    background-color: #f3b519;
+    display: flex;
+    align-items: center;
+    height: 64px;
+    width: 100%;
+    justify-content: center;
+    font-family: Roboto-Medium;
+    font-size: 14px;
+}
+.page-booking-air-car-infor-price span:last-child {
+    font-size: 24px;
+    color: #001539;
+}
+
+.booking-infor-item.booking-infor-price {
+    display: flex;
+    align-items: center;
+}
+
+.view  .view-filters {
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #cccc;
+}
+
+
+
+#user-profile-form #edit-field-field-account-area-lat {
+    height: 0px;
+    overflow: hidden;
+    opacity: 0;
+}
+
+#user-profile-form #edit-field-field-account-area-lng {
+    height: 0px;
+    overflow: hidden;
+    opacity: 0;
+}
+
+div.profile > div.field  {
+    margin-bottom: 15px;
+}
+
+
+.view-user-withdrawal #edit-created-wrapper > .views-widget {
+    display: flex;
+}
+.view-user-withdrawal #edit-created-wrapper > .views-widget  >.form-item:last-child {
+    display: flex;
+}
+
+.view-user-withdrawal #edit-created-wrapper > .views-widget  >.form-item:last-child  > label{
+    margin: 5px;
+}
+
+
+.table-result {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.table-result .table-result-row:nth-child(odd) {
+    background: #ccc;
+}
+
+.table-result .table-result-column{
+    border-bottom: 1px solid #eee;
+    padding: 6px 15px 6px 15px;
+}
+
+.table-result .table-result-control {
+    display: flex;
+    justify-content: flex-end;
+}
+.table-result .table-result-control a.control {
+    text-align: center; display: inline-block; padding: 6px 12px;border: 1px solid orange;background-color: orange; border-radius: 4px;color: white; min-width: 60px;
+    margin-left: 15px;
+}
+.table-result {
+    margin-bottom: 30px;
+}
+
+
+#edit-time-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-top: 35px;
+    height: 34px;
+}
+#edit-time-ranger {
+    padding-left: 60px;
+    padding-right: 60px;
+    width: 100%;
+    margin-bottom: 0px;
+}
+.form-item-stime {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 40px;
+}
+.form-item-etime {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    width: 40px;
+}
+
+.form-item-stime input,
+.form-item-etime input {
+    padding-left: 2px;
+    padding-right: 2px;
+    text-align: center;
+}
+
+#edit-time-ranger .ui-state-default,
+#edit-time-ranger .ui-widget-content .ui-state-default,
+#edit-time-ranger .ui-widget-header .ui-state-default{
+    background: #ff9400 !important;
+    border: 1px solid #ff9400;
+    top: -4px !important;
+}
+
+
+.view-car-booking .views-exposed-widgets > div {
+    width: 16.6666%;
+}

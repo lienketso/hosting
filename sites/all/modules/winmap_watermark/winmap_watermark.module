@@ -1,0 +1,38 @@
+<?php
+
+
+
+/**
+ * Implements hook_menu()
+ */
+function winmap_watermark_menu() {
+  $items = array();
+
+  $items['admin/config/winmap/watermark'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'title' => t('General winmap configuration'),
+    'page callback' => array('drupal_get_form'),
+    'page arguments' => array('winmap_watermark_config_form'),
+    'access arguments' => array('winmap_watermark module'),
+    'file' => 'winmap_watermark.inc',
+  );
+
+  return $items;
+}
+
+
+
+/**
+ * Implements hook_permission().
+ */
+function winmap_watermark_permission() {
+  return array(
+    'winmap module' => array(
+      'title' => t('winmap_watermark module'),
+      'description' => t('Access for winmap winmap module'),
+    )
+  );
+}
+
+
+

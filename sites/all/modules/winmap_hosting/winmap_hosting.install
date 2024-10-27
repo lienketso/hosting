@@ -1,0 +1,593 @@
+<?php
+
+/**
+ * Performs database updates and uninstallation cleanup for the winmap_hosting module.
+ */
+
+function winmap_hosting_schema()
+{
+  $schema = array();
+
+  /**
+   * Salarys.
+   */
+  $schema['winmap_hostings'] = array(
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'size' => 'big',
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'ipv4' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'ipv6' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'sshUser' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'sshPass' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'mysqlPort' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'mysqlUser' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'mysqlPass' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'maxCcu' => array(
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'usedCcu' => array(
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'domainName' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'domainPath' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
+      'uid' => array( //Ngui tao
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'status' => array( //trạng thái
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'created' => array( //Ngày tạo
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'changed' => array( //Ngày cập nhật
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      )
+    ),
+    'primary key' => array('id'),
+    'indexes' => array(
+      'wt_name' => array('name'),
+      'wt_created' => array('created'),
+      'wt_changed' => array('changed'),
+    ),
+  );
+
+  $schema['winmap_hosting_revisions'] = array(
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'size' => 'big',
+      ),
+
+      'hostingId' => array(
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'ipv4' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'ipv6' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'sshUser' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'sshPass' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'mysqlPort' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'mysqlUser' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'mysqlPass' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'maxCcu' => array(
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'usedCcu' => array(
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'domainName' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => ''
+      ),
+      'domainPath' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'status' => array( //trạng thái
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'created' => array( //Ngày tạo
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'changed' => array( //Ngày cập nhật
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+
+      'posted' => array( //Ngày tạo
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'createBy' => array(
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+
+      'oldData' => array(
+        'type' => 'blob',
+        'size' => 'big', // normal / big
+        'not null' => FALSE,
+      ),
+
+    ),
+    'primary key' => array('id'),
+    'indexes' => array(
+      'wt_name' => array('name'),
+      'wt_created' => array('created'),
+      'wt_changed' => array('changed'),
+    ),
+  );
+  return $schema;
+}
+
+
+//function winmap_hosting_update_7302(){
+//  $schema = array();
+//  $transaction = db_transaction();
+//  try {
+//    $schema['winmap_hostings'] = array(
+//      'fields' => array(
+//        'id' => array(
+//          'type' => 'serial',
+//          'unsigned' => TRUE,
+//          'not null' => TRUE,
+//          'size' => 'big',
+//        ),
+//        'name' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'ipv4' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'ipv6' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'sshUser' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'sshPass' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'mysqlPort' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'mysqlUser' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'mysqlPass' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'maxCcu' => array(
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//        'usedCcu' => array(
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//        'domainName' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'domainPath' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'description' => '',
+//        ),
+//        'status' => array( //trạng thái
+//          'type' => 'int',
+//          'size' => 'tiny',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//        'created' => array( //Ngày tạo
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//        'changed' => array( //Ngày cập nhật
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => TRUE,
+//          'default' => 0,
+//        )
+//      ),
+//      'primary key' => array('id'),
+//      'indexes' => array(
+//        'wt_name' => array('name'),
+//        'wt_created' => array('created'),
+//        'wt_changed' => array('changed'),
+//      ),
+//    );
+//    db_create_table('winmap_hostings', $schema['winmap_hostings']);
+//  } catch (Exception $e) {
+//    $transaction->rollback();
+//    return $e->getMessage();
+//  }
+//}
+
+
+//function winmap_hosting_update_7303(){
+//  $schema = array();
+//  $transaction = db_transaction();
+//  try {
+//    $schema['winmap_hostings'] = array(
+//      'uid' => array(
+//        'type' => 'int',
+//        'size' => 'big',
+//        'not null' => FALSE,
+//        'default' => 0,
+//      ),
+//    );
+//    $schema['winmap_hosting_revisions'] = array(
+//      'fields' => array(
+//        'id' => array(
+//          'type' => 'serial',
+//          'unsigned' => TRUE,
+//          'not null' => TRUE,
+//          'size' => 'big',
+//        ),
+//
+//        'hostingId' => array(
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//
+//        'name' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'ipv4' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'ipv6' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'sshUser' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'sshPass' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'mysqlPort' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'mysqlUser' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'mysqlPass' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'maxCcu' => array(
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => TRUE,
+//          'default' => 0,
+//        ),
+//        'usedCcu' => array(
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//        'domainName' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'domainPath' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'description' => '',
+//        ),
+//        'uid' => array(
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//        'status' => array( //trạng thái
+//          'type' => 'int',
+//          'size' => 'tiny',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//        'created' => array( //Ngày tạo
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//        'changed' => array( //Ngày cập nhật
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => TRUE,
+//          'default' => 0,
+//        ),
+//
+//        'posted' => array( //Ngày tạo
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//        'createBy' => array(
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//
+//        'oldData' => array(
+//          'type' => 'blob',
+//          'size' => 'big', // normal / big
+//          'not null' => FALSE,
+//        ),
+//
+//      ),
+//      'primary key' => array('id'),
+//      'indexes' => array(
+//        'wtr_createBy' => array('createBy'),
+//        'wtr_uid' => array('uid'),
+//        'wtr_hostingId' => array('hostingId'),
+//        'wtr_name' => array('name'),
+//        'wtr_created' => array('created'),
+//        'wtr_changed' => array('changed'),
+//      ),
+//    );
+//    db_create_table('winmap_hosting_revisions', $schema['winmap_hosting_revisions']);
+//    //alter table winmap_hosting
+//    db_add_field('winmap_hostings', 'uid', array('type' => 'int', 'size' => 'big', 'not null' => FALSE, 'default' => 0));
+//    db_add_index('winmap_hostings', 'wt_uid', array(array('uid')));
+//
+//  } catch (Exception $e) {
+//    $transaction->rollback();
+//    return $e->getMessage();
+//  }
+//}
+
+
+//function winmap_hosting_update_7304(){
+//  $transaction = db_transaction();
+//  try {
+//    db_add_field('winmap_hostings', 'ftpUser', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+//    db_add_field('winmap_hostings', 'ftpPass', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+//  }catch (Exception $e){
+//    $transaction->rollback();
+//    return $e->getMessage();
+//  }
+//}
+
+function winmap_hosting_update_7305(){
+  $transaction = db_transaction();
+  try {
+    db_add_field('winmap_hosting_revisions', 'ftpUser', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+    db_add_field('winmap_hosting_revisions', 'ftpPass', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+  }catch (Exception $e){
+    $transaction->rollback();
+    return $e->getMessage();
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function winmap_hosting_install() {
+
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function winmap_hosting_uninstall() {
+
+
+}
+
+

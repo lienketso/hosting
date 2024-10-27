@@ -1,0 +1,654 @@
+<?php
+
+
+/* Load configs
+ *
+ * */
+include(DRUPAL_ROOT . "/sites/all/modules/winmap_hosting/winmap_hosting.config.php");
+/* Load utilities
+ *
+ * */
+include(DRUPAL_ROOT . "/sites/all/modules/winmap_hosting/winmap_hosting.utilities.php");
+
+
+
+function winmap_hosting_init()
+{
+
+}
+
+
+/**
+ * Implements hook_menu()
+ */
+function winmap_hosting_menu()
+{
+  $items = array();
+  //list hosting manager
+  $items['admin/hostings'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'winmap_hosting_page_callback',
+    'title' => 'Danh sách hosting',
+    'access arguments' => array('winmap_hosting module'),
+    'weight' => 1,
+    'file' => 'winmap_hosting.inc',
+  );
+  //create new hosting
+  $items['admin/hostings/create'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'winmap_admin_hosting_create_page',
+    'title' => 'Thêm hosting mới',
+    'access arguments' => array('winmap_hosting module'),
+    'weight' => 2,
+    'file' => 'winmap_hosting.inc',
+  );
+  //edit hosting
+  $items['admin/hosting/%hosting/edit'] = array(
+    'title' => 'Edit Host',
+    'page callback' => 'winmap_admin_hosting_edit_page',
+    'page arguments' => array(2), // '2' lấy tham số thứ hai từ URL (ID)
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+
+  $items['admin/hosting/connect-ssh-api'] = array(
+    'title' => 'Api connect ssh',
+    'page callback' => 'winmap_connect_ssh_api',
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/hosting/connect-ftp-api'] = array(
+    'title' => 'Api connect ftp',
+    'page callback' => 'winmap_connect_ftp_api',
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function winmap_hosting_theme($existing, $type, $theme, $path)
+{
+  return array(
+    'winmap_hosting_form' => array(
+      'render element' => 'form',
+      'template' => 'winmap_hosting_form',
+      'path' => drupal_get_path('module', 'winmap_hosting') . '/templates/forms/admin',
+    ),
+
+  );
+}
+
+/**
+ * Implements hook_permission().
+ */
+function winmap_hosting_permission()
+{
+  return array(
+    'winmap_hosting module' => array(
+      'title' => t('winmap_hosting module'),
+      'description' => t('Access for winmap_hosting module'),
+    )
+  );
+}
+
+function winmap_hosting_get_items_all() {
+  $sql = "SELECT * FROM winmap_hostings ORDER BY id ASC";
+  $result = db_query($sql)->fetchAll();
+  return $result;
+}
+
+
+/**
+ * Load.
+ */
+function hosting_load($hostingId)
+{
+  $hosting = null;
+  try {
+    $result = db_select('winmap_hostings', 'wh')
+      ->fields('wh')
+      ->condition('id', $hostingId, '=')
+      ->execute()
+      ->fetchObject();
+
+    // Kiểm tra nếu không tìm thấy bản ghi.
+    if (!empty($result)) {
+      $hosting = $result;
+    }
+
+  } catch (Exception $e) {
+
+  }
+  return $hosting;
+}
+
+
+/**
+ * Last changed.
+ */
+function winmap_hosting_last_changed ($hostingId) {
+  $changed = db_query('SELECT changed FROM {winmap_hostings} WHERE id = :id', array(':id' => $hostingId))->fetch()->changed;
+  if (empty($changed)) {
+    $changed = 0;
+  }
+  return $changed;
+}
+
+/**
+ * Save.
+ */
+
+function hosting_save($hosting)
+{
+  global $user;
+  $op = null;
+  $transaction = db_transaction();
+  $hosting_old = $hosting;
+  if (is_array($hosting)) {
+    $hosting = (object)$hosting;
+  }
+  if (empty($hosting->id)) {
+    $op = 'insert';
+  }else {
+    $op = 'update';
+  }
+
+  $saved = null;
+  try {
+    module_invoke_all('winmap_hosting_presave', $hosting, $op);
+    if ($op == 'insert') {
+      $hosting->created = $hosting->changed = REQUEST_TIME;
+      $hosting->uid = $user->uid;
+      $saved = drupal_write_record('winmap_hostings', $hosting);
+      module_invoke_all('winmap_hosting_insert', $hosting);
+    } elseif($op == 'update') {
+      $old =  winmap_hosting_load($hosting->id);
+      $saved = drupal_write_record('winmap_hostings', $hosting, array('id'));
+      $revisions = $hosting;
+      $revisions->hostingId = $hosting->id;
+      $revisions->createBy = $user->uid;
+      $revisions->posted = REQUEST_TIME;
+      unset($revisions->id);
+      $revisions->oldData = json_encode($old);
+      drupal_write_record('winmap_hosting_revisions', $revisions);
+      module_invoke_all('winmap_hosting_update', $hosting);
+    }
+  } catch (Exception $e) {
+    $transaction->rollback();
+  }
+  return $saved;
+}
+
+/* Load forms
+ *
+ *
+ * */
+include(DRUPAL_ROOT . "/sites/all/modules/winmap_hosting/winmap_hosting.forms.php");
+
+
+///
+function winmap_hosting_load($hostingId) {
+  $result = db_select('winmap_hostings', 'wh')
+    ->fields('wh')
+    ->condition('id', $hostingId, '=')
+    ->execute()
+    ->fetchObject();
+  if ($result) {
+    return $result;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+
+
+function winmap_ssh_connect($ip) {
+//  $ip = '103.179.190.104';
+  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Net/SSH2');
+  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/RC4');
+  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/Rijndael');
+  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/Twofish');
+  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/Blowfish');
+  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/TripleDES');
+  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Math/BigInteger');
+  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/Hash');
+
+  // Kiểm tra Ip
+  if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+    return array('success' => FALSE, 'message' => 'Địa chỉ Ip không hợp lệ');
+  }
+
+  $username = 'ftp_winmap.vn';
+  $password = 'cafZ40_0';
+  $port = 22;
+
+  // Kiểm tra đăng nhập
+  if (empty($username) || empty($password)) {
+    return array('success' => FALSE, 'message' => 'Thông tin đăng nhập SSH không được để trống');
+  }
+
+  // Kiểm tra xem máy chủ có thể liên lạc được không.
+  $pingable = @fsockopen($ip, $port, $errno, $errstr, 5); // 5 giây timeout.
+  if (!$pingable) {
+    return array('success' => FALSE, 'message' => 'Máy chủ không thể truy cập được: ' . $errstr);
+  }
+  fclose($pingable);
+
+  $ssh = new Net_SSH2($ip, $port);
+  $output = $ssh->exec('ls -la');
+  try {
+    if (!$ssh->login($username, $password)) {
+      return array('success' => FALSE, 'message' => 'SSH login failed','ssh'=>$output);
+    }
+  } catch (Exception $e) {
+    //ghi log system khi có lỗi
+    watchdog('winmap_ssh_connect', 'Không kết nối được với SSH: ' . $e->getMessage(), array(), WATCHDOG_ERROR);
+    return array('success' => FALSE, 'message' => 'Không kết nối được với SSH : ' . $e->getMessage());
+  }
+
+  return $ssh;
+}
+function crypt_random_string($length) {
+  return bin2hex(random_bytes($length / 2));
+}
+
+function winmap_ssh_close(&$connect) {
+  // Kiểm tra xem kết nối có phải là một đối tượng hợp lệ của Net\SSH2 không
+  if (isset($connect) && is_object($connect) && get_class($connect) === 'phpseclib1.0.23/Net/SSH2') {
+    // Thực hiện đóng kết nối SSH bằng cách giải phóng biến
+    $connect = null; // Giải phóng tài nguyên kết nối
+    return TRUE; // Đóng kết nối thành công
+  }
+
+  return FALSE; // Kết nối không hợp lệ hoặc đã được đóng trước đó
+}
+
+function winmap_ssh_login($connect, $sshUser, $sshPass) {
+  // Kiểm tra xem kết nối có phải là một đối tượng SSH hợp lệ không
+  if (isset($connect) && is_object($connect) && get_class($connect) === 'Net_SSH2') {
+    // Thử đăng nhập với username và password
+    if ($connect->login($sshUser, $sshPass)) {
+      return TRUE; // Đăng nhập thành công
+    } else {
+      watchdog('winmap_ssh_login', 'SSH login failed for user: @user', array('@user' => $sshUser), WATCHDOG_WARNING);
+      return FALSE; // Đăng nhập thất bại
+    }
+  }
+
+  // Nếu kết nối không hợp lệ
+  watchdog('winmap_ssh_login', 'Invalid SSH connection provided.', array(), WATCHDOG_ERROR);
+  return FALSE;
+}
+
+function winmap_ssh_connection($ip, $username, $password){
+  if (!function_exists('ssh2_connect')) {
+    return 'Module SSH2 chưa được cài đặt trong PHP.';
+  }
+
+  // Tạo kết nối SSH.
+  $connection = ssh2_connect($ip, 22);
+  if (!$connection) {
+    return 'Không thể kết nối đến máy chủ SSH. Vui lòng kiểm tra lại địa chỉ IP.';
+  }
+
+  // Xác thực bằng tên đăng nhập và mật khẩu.
+  if (!ssh2_auth_password($connection, $username, $password)) {
+    return 'Xác thực SSH không thành công. Vui lòng kiểm tra lại thông tin đăng nhập.';
+  }
+
+  // Trả về resource kết nối nếu thành công.
+  return $connection;
+}
+
+function winmap_ssh_sql_create_db($connect, $dbName, $dbUser, $dbPass, $domain) {
+  // Kiểm tra xem kết nối có phải là một đối tượng SSH hợp lệ không
+  if (isset($connect) && is_object($connect) && get_class($connect) === 'Net_SSH2') {
+    $createDbCommand = "CREATE DATABASE `$dbName`;";
+    $createUserCommand = "CREATE USER '$dbUser'@'localhost' IDENTIFIED BY '$dbPass';";
+    // Gán quyền
+    $grantPrivilegesCommand = "GRANT ALL PRIVILEGES ON `$dbName`.* TO '$dbUser'@'localhost';";
+    // Làm mới quyền
+    $flushPrivilegesCommand = "FLUSH PRIVILEGES;";
+
+    // Gửi và thực thi các lệnh qua SSH
+    $commands = [
+      $createDbCommand,
+      $createUserCommand,
+      $grantPrivilegesCommand,
+      $flushPrivilegesCommand
+    ];
+
+    foreach ($commands as $command) {
+      $output = $connect->exec($command);
+      // Kiểm tra nếu lệnh thực thi không thành công
+      if ($output === false) {
+        watchdog('winmap_ssh_sql_create_db', 'Không thực hiện được lệnh: @command', array('@command' => $command), WATCHDOG_ERROR);
+        return FALSE; // Trả về false nếu có lỗi
+      }
+    }
+    watchdog('winmap_ssh_sql_create_db', 'Database @dbname được khởi tạo thành công cho domain @domain',
+      array('@dbname' => $dbName, '@domain' => $domain), WATCHDOG_NOTICE);
+    return TRUE; // Trả về true nếu tất cả lệnh thành công
+  }
+  // Nếu kết nối không hợp lệ
+  watchdog('winmap_ssh_sql_create_db', 'Kết nối SSH không hợp lệ được cung cấp để tạo cơ sở dữ liệu.', array(), WATCHDOG_ERROR);
+  return FALSE;
+}
+
+function winmap_ssh_sql_import_db($connect, $dbName, $dbUser, $dbPass, $path) {
+
+  if (isset($connect) && is_object($connect) && get_class($connect) === 'Net_SSH2') {
+    // Kiểm tra xem đường dẫn tệp SQL có hợp lệ không
+    if (!file_exists($path)) {
+      watchdog('winmap_ssh_sql_import_db', 'SQL file not found at path: @path', array('@path' => $path), WATCHDOG_ERROR);
+      return FALSE;
+    }
+
+    // Lệnh để import cơ sở dữ liệu từ tệp SQL
+    $importCommand = "mysql -u$dbUser -p$dbPass $dbName < $path";
+
+    // Thực thi lệnh qua SSH
+    $output = $connect->exec($importCommand);
+
+    // Kiểm tra nếu lệnh thực thi không thành công
+    if ($output === false) {
+      watchdog('winmap_ssh_sql_import_db', 'Không thể nhập cơ sở dữ liệu: @dbname từ file: @path', array('@dbname' => $dbName, '@path' => $path), WATCHDOG_ERROR);
+      return FALSE;
+    }
+
+    watchdog('winmap_ssh_sql_import_db', 'Database @dbname đã nhập thành công từ file: @path', array('@dbname' => $dbName, '@path' => $path), WATCHDOG_NOTICE);
+    return TRUE; // Import thành công
+  }
+
+  // Nếu kết nối không hợp lệ
+  watchdog('winmap_ssh_sql_import_db', 'Kết nối SSH không hợp lệ', array(), WATCHDOG_ERROR);
+  return FALSE;
+}
+
+
+function winmap_ssh_create_domain($host, $domain, $ip, $username, $password) {
+//  $host = 'https://103.179.190.104:8443';
+  $plesk_host = 'https://'.$host.':8443';
+  $api_token = '';
+  $url = $plesk_host . "/api/v2/domains";
+
+  $data = [
+    "name" => $domain,
+    "ipAddresses" => [$ip],
+    "hosting_type" => "virtual",
+    "login" => $username,
+    "password" => $password,
+  ];
+
+  $ch = curl_init($url);
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    "Authorization: Bearer $api_token",
+    "Content-Type: application/json",
+  ]);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+  curl_setopt($ch, CURLOPT_POST, true);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+
+  $response = curl_exec($ch);
+  $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  curl_close($ch);
+
+  if ($httpCode == 201) {
+    return t("Domain created successfully: @domain_name", ['@domain_name' => $domain]);
+  } else {
+    watchdog('plesk_domain_module', 'Failed to create domain. Response: @response', ['@response' => $response], WATCHDOG_ERROR);
+    return t("Failed to create domain. Please check the logs for more details.");
+  }
+
+}
+
+function winmap_ssh_create_sub_domain($connect, $domain, $subDomain, $ip){
+  $ch = $connect['ch'];
+  $apiUrl = $connect['apiUrl'];
+  // Dữ liệu JSON cho yêu cầu tạo subdomain
+  $data = array(
+    'name' => "$subDomain.$domain",
+    'ip_address' => $ip,
+    'parent_domain' => $domain,
+  );
+
+  // Thiết lập cURL cho yêu cầu POST
+  curl_setopt($ch, CURLOPT_URL, $apiUrl . "domains");
+  curl_setopt($ch, CURLOPT_POST, true);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+  curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+  // Thực hiện yêu cầu và nhận phản hồi
+  $response = curl_exec($ch);
+  $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+  if ($httpCode == 201) {
+    watchdog('plesk_create_sub_domain', 'Subdomain @subdomain được tạo dưới domain @domain', array('@subdomain' => "$subDomain.$domain", '@domain' => $domain), WATCHDOG_NOTICE);
+    return TRUE;
+  } else {
+    watchdog('plesk_create_sub_domain', 'Lỗi tạo subdomain: @subdomain', array('@subdomain' => "$subDomain.$domain"), WATCHDOG_ERROR);
+    return FALSE;
+  }
+}
+
+function winmap_ssh_create_folder($connect, $folderName, $path) {
+  // Kiểm tra kết nối SSH
+  if (!$connect) {
+    watchdog('winmap_ssh_create_folder', 'SSH connection is not established.', array(), WATCHDOG_ERROR);
+    return false;
+  }
+
+  // Tạo đường dẫn đầy đủ cho thư mục mới
+  $fullPath = rtrim($path, '/') . '/' . trim($folderName, '/');
+
+  // Lệnh để tạo thư mục
+  $command = "mkdir -p " . escapeshellarg($fullPath); // -p để không báo lỗi nếu thư mục đã tồn tại
+
+  // Thực thi lệnh qua SSH
+  $stream = ssh2_exec($connect, $command);
+  stream_set_blocking($stream, true);
+  $output = stream_get_contents($stream);
+  $returnCode = intval(ssh2_fetch_stream($stream, SSH2_FSTAT));
+
+  // Kiểm tra mã trả về
+  if ($returnCode === 0) {
+    watchdog('winmap_ssh_create_folder', 'Thư mục @folder được khởi tạo từ đường dẫn @path.', array('@folder' => $folderName, '@path' => $fullPath), WATCHDOG_NOTICE);
+    return true;
+  } else {
+    watchdog('winmap_ssh_create_folder', 'Lỗi tạo thư mục @folder tại @path: @output', array('@folder' => $folderName, '@path' => $fullPath, '@output' => $output), WATCHDOG_ERROR);
+    return false;
+  }
+}
+
+
+function winmap_ssh_upload_file($connect, $fileName, $path) {
+
+  if (!$connect) {
+    watchdog('winmap_ssh_upload_file', 'Kết nối SSH không được thiết lập.', array(), WATCHDOG_ERROR);
+    return false;
+  }
+
+  // Kiểm tra xem file có tồn tại không
+  if (!file_exists($fileName)) {
+    watchdog('winmap_ssh_upload_file', 'File @file không tồn tại.', array('@file' => $fileName), WATCHDOG_ERROR);
+    return false;
+  }
+
+  // Đường dẫn đầy đủ trên máy chủ
+  $remotePath = rtrim($path, '/') . '/' . basename($fileName);
+
+  // Upload file
+  if (ssh2_scp_send($connect, $fileName, $remotePath)) {
+    watchdog('winmap_ssh_upload_file', 'File @file tải lên thành công @path.', array('@file' => $fileName, '@path' => $remotePath), WATCHDOG_NOTICE);
+    return true;
+  } else {
+    watchdog('winmap_ssh_upload_file', 'Không tải được file @file đến @path.', array('@file' => $fileName, '@path' => $remotePath), WATCHDOG_ERROR);
+    return false;
+  }
+}
+
+
+function winmap_ftp_connect($ftp_server, $ftp_port, $ftp_user, $ftp_pass) {
+  // Kết nối tới FTP server.
+  $ftp_conn = ftp_connect($ftp_server, $ftp_port);
+
+  // Kiểm tra kết nối.
+  if ($ftp_conn === false) {
+    watchdog('winmap_hosting', 'Could not connect to FTP server @server: @port', array('@server' => $ftp_server, '@port' => $ftp_port), WATCHDOG_ERROR);
+    return array('success'=>false);
+  }
+
+  // Đăng nhập vào FTP server.
+  $login = ftp_login($ftp_conn, $ftp_user, $ftp_pass);
+
+  // Kiểm tra đăng nhập.
+  if ($login === false) {
+    ftp_close($ftp_conn);
+    watchdog('winmap_hosting', 'Could not log in to FTP server with username: @user', array('@user' => $ftp_user), WATCHDOG_ERROR);
+    return array('success'=>false);
+  }
+
+  // Trả về kết nối thành công.
+  return $ftp_conn;
+}
+
+function winmap_ftp_close($connect) {
+  if (!$connect) {
+    watchdog('winmap_ftp_close', 'Không có kết nối FTP hợp lệ nào để đóng.', array(), WATCHDOG_WARNING);
+    return false;
+  }
+  // Đóng kết nối FTP
+  if (ftp_close($connect)) {
+    watchdog('winmap_ftp_close', 'Kết nối FTP đã đóng thành công.', array(), WATCHDOG_NOTICE);
+    return true;
+  } else {
+    watchdog('winmap_ftp_close', 'Không thể đóng kết nối FTP.', array(), WATCHDOG_ERROR);
+    return false;
+  }
+}
+
+function winmap_ftp_login($connect, $username, $password) {
+  // Kiểm tra kết nối FTP
+  if (!$connect) {
+    watchdog('winmap_ftp_login', 'Không có kết nối FTP hợp lệ để đăng nhập.', array(), WATCHDOG_ERROR);
+    return false;
+  }
+
+  // Thực hiện đăng nhập
+  if (ftp_login($connect, $username, $password)) {
+    watchdog('winmap_ftp_login', 'Đã đăng nhập vào máy chủ FTP với tư cách là @user.', array('@user' => $username), WATCHDOG_NOTICE);
+    return true;
+  } else {
+    watchdog('winmap_ftp_login', 'Không thể đăng nhập vào máy chủ FTP as @user.', array('@user' => $username), WATCHDOG_ERROR);
+    return false;
+  }
+}
+
+//Create folder sử dụng tài khoản ftp
+function winmap_ftp_create_folder($connect, $folderName, $path) {
+  // Kiểm tra kết nối FTP
+  if (!$connect) {
+    watchdog('winmap_ftp_create_folder', 'No valid FTP connection to create folder.', array(), WATCHDOG_ERROR);
+    return false;
+  }
+
+  // Tạo đường dẫn đầy đủ cho thư mục
+  $fullPath = rtrim($path, '/') . '/' . trim($folderName, '/');
+
+  // Tạo thư mục trên server FTP
+  if (ftp_mkdir($connect, $fullPath)) {
+    watchdog('winmap_ftp_create_folder', 'Thư mục @folder tạo thành công tại đường dẫn @path.', array('@folder' => $folderName, '@path' => $fullPath), WATCHDOG_NOTICE);
+    return true;
+  } else {
+    watchdog('winmap_ftp_create_folder', 'Lỗi tạo thư mục @folder với đường dẫn @path.', array('@folder' => $folderName, '@path' => $fullPath), WATCHDOG_ERROR);
+    return false;
+  }
+}
+
+function winmap_ftp_upload_file($connect, $fileName, $path) {
+  // Kiểm tra kết nối FTP
+  if (!$connect) {
+    watchdog('winmap_ftp_upload_file', 'Không có kết nối FTP hợp lệ để tải tệp lên.', array(), WATCHDOG_ERROR);
+    return false;
+  }
+
+  // Kiểm tra xem file có tồn tại không
+  if (!file_exists($fileName)) {
+    watchdog('winmap_ftp_upload_file', 'File @file không tồn tại', array('@file' => $fileName), WATCHDOG_ERROR);
+    return false;
+  }
+
+  // Upload file lên server FTP
+  if (ftp_put($connect, $path, $fileName, FTP_BINARY)) {
+    watchdog('winmap_ftp_upload_file', 'File @file tải lên thành công tại @path.', array('@file' => $fileName, '@path' => $path), WATCHDOG_NOTICE);
+    return true;
+  } else {
+    watchdog('winmap_ftp_upload_file', 'Lỗi tải @file tại @path.', array('@file' => $fileName, '@path' => $path), WATCHDOG_ERROR);
+    return false;
+  }
+}
+
+
+function winmap_dns_create_domain($domainName, $ip) {
+
+  $cloudflareToken ="BX4I60roVBRRA9fnsrUSRceLd2-EV-ocp42DO1Cs";
+  $zoneId = "01f1e81cd518dff25bef99c334a146be"; //id lấy từ tên miền tại cloud flare
+  $apiUrl = "https://api.cloudflare.com/client/v4/zones/$zoneId/dns_records";
+
+  // Dữ liệu gửi đi cho bản ghi DNS
+  $data = array(
+    'type' => 'A',               // Loại bản ghi (A Record)
+    'name' => $domainName,       // Tên domain
+    'content' => $ip,            // Địa chỉ IP trỏ tới
+    'ttl' => 3600,               // Thời gian TTL (giây)
+    'proxied' => false           // Không bật proxy Cloudflare
+  );
+
+  // Khởi tạo cURL
+  $ch = curl_init($apiUrl);
+
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_POST, true);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+  curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+    'Content-Type: application/json',
+    'Authorization: Bearer ' . $cloudflareToken
+  ));
+
+  // Thực hiện yêu cầu
+  $response = curl_exec($ch);
+
+  // Kiểm tra lỗi cURL
+  if (curl_errno($ch)) {
+    watchdog('winmap_dns_create_domain', 'Curl error: @error', array('@error' => curl_error($ch)), WATCHDOG_ERROR);
+    curl_close($ch);
+    return false;
+  }
+
+  // Đóng cURL
+  curl_close($ch);
+
+  $result = json_decode($response, true);
+
+  // Kiểm tra kết quả
+  if (isset($result['success']) && $result['success'] === true) {
+    watchdog('winmap_dns_create_domain', 'Bản ghi DNS cho @domain tạo thành công cho IP @ip.', array('@domain' => $domainName, '@ip' => $ip), WATCHDOG_NOTICE);
+    return true;
+  } else {
+    $errorMessage = isset($result['errors'][0]['message']) ? $result['errors'][0]['message'] : 'Unknown error';
+    watchdog('winmap_dns_create_domain', 'Không tạo được bản ghi DNS cho tên miền @domain: @error', array('@domain' => $domainName, '@error' => $errorMessage), WATCHDOG_ERROR);
+    return false;
+  }
+}

@@ -1,0 +1,33 @@
+/*alter*/
+
+
+/*responsive*/
+@media (min-width: 992px) {
+    .winmap-swiper-desktop,
+    .desktop {
+        display: block;
+    }
+}
+
+@media (max-width: 991px) {
+    .winmap-swiper-tablet,
+    .tablet {
+        display: block;
+    }
+    .winmap-swiper-desktop.no-tablet-mobile, .desktop.no-tablet-mobile, .desktop.no-tablet {
+        display: block !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .winmap-swiper-tablet.no-mobile {
+        display: block !important;
+    }
+    .winmap-swiper-mobile,.mobile {
+        display: block;
+    }
+    .desktop.no-tablet {
+        display: none !important;
+    }
+}
+

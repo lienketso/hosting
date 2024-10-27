@@ -1,0 +1,352 @@
+<?php
+
+
+/**
+ * Implements hook_permission().
+ */
+function winmap_admin_permission() {
+  return  array (
+    'winmap admin content' => array(
+      'title' => t('Administrator content manager'),
+      'description' => t('winmap admin content'),
+    ),
+    'winmap admin block manager' => array(
+      'title' => t('Administrator block Manager'),
+      'description' => t('winmap admin block manager'),
+    ),
+  );
+}
+
+
+/**
+ * Implementation of hook_menu
+ *
+ * @return unknown
+ */
+function winmap_admin_menu() {
+
+
+  //block
+  $items['admin/winmap/administrator'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'winmap_admin_administrator_page_block',
+    'title' => 'Quản lý trang chính',
+    'access arguments' => array('winmap admin block manager'),
+    'weight' => -99,
+    'file' => 'winmap_admin.admin.inc',
+  );
+
+  $items['admin/winmap/administrator/block'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'winmap_admin_administrator_page_block',
+    'title' => 'Quản lý khối',
+    'access arguments' => array('winmap admin block manager'),
+    'weight' => 1,
+    'file' => 'winmap_admin.admin.inc',
+  );
+  $items['admin/winmap/administrator/block/%winmap_admin_block/delete'] = array(
+    'page callback' => 'winmap_admin_administrator_page_block_delete',
+    'page arguments' => array(4),
+    'title' => 'Xóa khối',
+    'access arguments' => array('winmap admin block manager'),
+    'file' => 'winmap_admin.admin.inc',
+  );
+  $items['admin/winmap/administrator/block/%winmap_admin_block/edit'] = array(
+    'page callback' => 'winmap_admin_administrator_page_block_edit',
+    'page arguments' => array(4),
+    'title' => 'Sửa khối',
+    'access arguments' => array('winmap admin block manager'),
+    'file' => 'winmap_admin.admin.inc',
+  );
+  $items['admin/winmap/administrator/block/%winmap_admin_block/items'] = array(
+    'page callback' => 'winmap_admin_administrator_page_block_items',
+    'page arguments' => array(4),
+    'title' => 'Biểu tượng',
+    'access arguments' => array('winmap admin block manager'),
+    'file' => 'winmap_admin.admin.inc',
+  );
+  $items['admin/winmap/administrator/block/%winmap_admin_block/items/%winmap_admin_block_items/delete'] = array(
+    'page callback' => 'winmap_admin_administrator_page_block_items_delete',
+    'page arguments' => array(4, 6),
+    'title' => 'Xóa biểu tượng',
+    'access arguments' => array('winmap admin block manager'),
+    'file' => 'winmap_admin.admin.inc',
+  );
+  $items['admin/winmap/administrator/block/%winmap_admin_block/items/%winmap_admin_block_items/edit'] = array(
+    'page callback' => 'winmap_admin_administrator_page_block_items_edit',
+    'page arguments' => array(4, 6),
+    'title' => 'Sửa biểu tượng',
+    'access arguments' => array('winmap admin block manager'),
+    'file' => 'winmap_admin.admin.inc',
+  );
+
+
+
+
+
+  return $items;
+}
+
+
+
+
+
+
+
+
+function winmap_admin_block_items_load($id_items) {
+  $sql = "SELECT id, name, link, icon, position FROM winmap_admin_items WHERE id = :id";
+  $result = db_query($sql, array(":id" => $id_items))->fetchAll();
+  if (!empty($result[0])) {
+    return $result[0];
+  }
+  return FALSE;
+}
+
+function winmap_admin_block_load($id) {
+  $sql = "SELECT id, name, icon, position FROM winmap_admin_block WHERE id = :id";
+  $result = db_query($sql, array(":id" => $id))->fetchAll();
+  if (!empty($result[0])) {
+    return $result[0];
+  }
+  return FALSE;
+}
+
+function winmap_admin_administrator_page_content() {
+  include_once 'winmap_admin.admin.inc';
+  return winmap_admin_administrator_page();
+}
+
+
+/**
+ * Implementation of hook_menu_alter
+ *
+ * @param unknown_type $items
+ */
+function winmap_admin_menu_alter(&$items) {
+  $items['node']['access callback'] = FALSE;
+//  $items['admin/structure/taxonomy/%taxonomy_vocabulary_machine_name']['access callback'] = 'winmap_admin_taxonomy_term_edit_access';
+//  $items['admin/structure/taxonomy/%taxonomy_vocabulary_machine_name']['access arguments'] = array(3);
+//  $items['admin/structure/taxonomy/%taxonomy_vocabulary_machine_name/add']['access callback'] = 'winmap_admin_taxonomy_term_edit_access';
+//  $items['admin/structure/taxonomy/%taxonomy_vocabulary_machine_name/add']['access arguments'] = array(3);
+//  $items['user']['page callback'] = 'winmap_admin_user_page';
+//  $items['user/%user']['access callback'] = FALSE;
+//  $items['user/%user/view']['access callback'] = FALSE;
+}
+
+
+
+function winmap_admin_taxonomy_term_edit_access($voca) {
+  return user_access("edit terms in $voca->vid") || user_access('administer taxonomy');
+}
+
+function winmap_admin_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'user_login') {
+    if (user_access('winmap admin content')) {
+      $form['#submit'] = array('winmap_admin_custom_login');
+    }
+  }
+  elseif ($form_id == 'system_cron_settings') {
+    $form['cron']['cron_safe_threshold']['#options'][1800] = "30 min";
+    $form['cron']['cron_safe_threshold']['#options'][300] = "5 min";
+  }
+  if (strpos($form_id, "node_form") !== FALSE) {
+    $form['domain']['#group'] = 'additional_settings';
+  }
+}
+
+function winmap_admin_custom_login($form, &$form_state) {
+  global $user;
+  $user = user_load($form_state['uid']);
+  $form_state['redirect'] = 'administrator';
+  user_login_finalize($form_state);
+}
+
+function _winmap_admin_block_add($name, $icon, $position) {
+  db_insert('winmap_admin_block')
+    ->fields(array(
+      'name' => $name,
+      'icon' => $icon,
+      'position' => $position,
+    ))
+    ->execute();
+}
+
+function _winmap_admin_block_edit($block, $edit) {
+  db_update('winmap_admin_block')
+    ->fields(array(
+      'name' => empty($edit['name']) ? $block->name : $edit['name'],
+      'icon' => empty($edit['icon']) ? $block->icon : $edit['icon'],
+      'position' => empty($edit['position']) ? $block->position : $edit['position'],
+    ))
+    ->condition('id', $block->id, '=')
+    ->execute();
+}
+
+function _winmap_admin_block_position_update($id, $position) {
+  db_update('winmap_admin_block')
+    ->fields(array(
+      'position' => $position,
+    ))
+    ->condition('id', $id, '=')
+    ->execute();
+}
+
+function _winmap_admin_block_items_add($id_khoi, $name, $link, $icon, $position) {
+  db_insert('winmap_admin_items')
+    ->fields(array(
+      'bid' => $id_khoi,
+      'name' => $name,
+      'link' => $link,
+      'icon' => $icon,
+      'position' => $position,
+    ))
+    ->execute();
+}
+
+function _winmap_admin_block_items_edit($items, $edit) {
+  db_update('winmap_admin_items')
+    ->fields(array(
+      'name' => empty($edit['name']) ? $items->name : $edit['name'],
+      'link' => empty($edit['link']) ? $items->link : $edit['link'],
+      'icon' => empty($edit['icon']) ? $items->icon : $edit['icon'],
+      'position' => empty($edit['position']) ? $items->position : $edit['position'],
+    ))
+    ->condition('id', $items->id, '=')
+    ->execute();
+}
+
+function _winmap_admin_block_items_position_update($id, $position) {
+  db_update('winmap_admin_items')
+    ->fields(array(
+      'position' => $position,
+    ))
+    ->condition('id', $id, '=')
+    ->execute();
+}
+
+function winmap_admin_theme($existing, $type, $theme, $path) {
+  return array(
+    'winmap_admin_administrator_page_block_load_all' => array(
+      'render element' => 'form',
+      'file' => 'winmap_admin.theme.inc'
+    ),
+    'winmap_admin_administrator_page_block_load_items' => array(
+      'render element' => 'form',
+      'file' => 'winmap_admin.theme.inc'
+    ),
+    'winmap_admin_administrator_icon' => array(
+      'variables' => array('icon' => NULL),
+      'file' => 'winmap_admin.theme.inc'
+    ),
+    'winmap_admin_get_menu_left' => array(
+      'variables' => array('items' => NULL),
+      'file' => 'winmap_admin.theme.inc'
+    ),
+    'winmap_admin_get_menu_left_winmap_admin_theme' => array(
+      'variables' => array('items' => NULL),
+      'file' => 'winmap_admin.theme.inc'
+    ),
+  );
+}
+
+function winmap_admin_get_icon() {
+  $sql = "SELECT icon FROM winmap_admin_items WHERE link = :link";
+  $result = db_query($sql, array(':link' => $_GET['q']))->fetchAll();
+  if (!empty($result[0])) {
+    return 'cwinmap-icon cwinmap-icon-' . $result[0]->icon;
+  }
+  elseif (arg(0) == 'user') {
+    return 'cwinmap-icon cwinmap-icon-nguoidung2';
+  }
+  return FALSE;
+}
+
+function winmap_admin_get_items_all() {
+  $sql = "SELECT b.id, b.name as name, b.position, b.icon, i.id as item_id, i.name as item_name, i.link, i.icon as item_icon, i.position as item_position
+  FROM {winmap_admin_block} b JOIN {winmap_admin_items} i ON b.id = i.bid ORDER BY b.position, i.position";
+  $result = db_query($sql)->fetchAll();
+  return $result;
+}
+
+function winmap_admin_get_menu_left($theme = '') {
+  //if(!user_access('winmap admin content')) return '';
+  $result = winmap_admin_get_items_all();
+  //todo
+  $list = array();
+  foreach ($result as $item) {
+    if (empty($list[$item->id])) {
+      $list[$item->id] = array(
+        '#title' => theme('winmap_admin_administrator_icon', array('icon' => $item->icon)) . '<span>' . $item->name . '</span>',
+        '#href' => $_GET['q'],
+        '#attributes' => array(),
+        '#localized_options' => array('html' => TRUE, 'fragment' => 'top'),
+      );
+    }
+    if (!empty($list[$item->id])) {
+      $argument = explode('?', $item->link);
+      if (drupal_valid_path($argument[0])) {
+        $args = array();
+        if (count($argument) == 2) {
+          $ex = explode('&', $argument[1]);
+          foreach ($ex as $part) {
+            $ex1 = explode('=', $part);
+            if (count($ex1) == 2) {
+              $args[$ex1[0]] = $ex1[1];
+            }
+          }
+        }
+        $list[$item->id]['#below'][$item->item_id] = array(
+          '#title' => theme('winmap_admin_administrator_icon', array('icon' => $item->item_icon)) . '<span>' . $item->item_name . '</span>',
+          '#href' => $argument[0],
+          '#attributes' => array(),
+          '#localized_options' => array('html' => TRUE, 'query' => $args),
+        );
+      }
+    }
+  }
+  drupal_alter('winmap_admin_get_menu_left', $list);
+  if ($theme) {
+    return theme($theme, array('items' => $list));
+  }
+  return theme('winmap_admin_get_menu_left', array('items' => $list));
+}
+
+function winmap_admin_page_build(&$page) {
+  global $user, $theme_key;
+  //todo
+  if ((user_access('winmap admin content') || user_access('cwinmap quantri access theme')) && $theme_key == 'my_theme') {
+    $page['page_bottom']['winmap_admin_menu'] = array(
+      '#markup' => '<div style="position: fixed; top: 40%; left: 10px; background: #ccc; border-radius: 5px; padding: 5px; z-index: 999;">' . l('Quản trị', user_access('winmap admin content') ? 'administrator' : 'manager') . '</div>'
+    );
+  }
+}
+
+function winmap_admin_taxonomy_menu_insert(&$item) {
+  $item = _winmap_admin_taxonomy_menu_item($item);
+}
+
+function winmap_admin_taxonomy_menu_update(&$item) {
+  $item = _winmap_admin_taxonomy_menu_item($item);
+}
+
+function _winmap_admin_taxonomy_menu_item($item) {
+  $mlid = _taxonomy_menu_get_mlid($item['tid'], $item['vid']);
+  if ($link = menu_link_load($mlid)) {
+    if ($link['depth'] == 1) {
+      $item['weight'] = $link['weight'];
+    }
+  }
+  return $item;
+}
+
+
+function winmap_admin_get_function() {
+  $args = func_get_args();
+  $func = $args[0];
+  if (!function_exists($func)) {
+    return FALSE;
+  }
+  unset($args[0]);
+  return call_user_func_array($func, $args);
+}
