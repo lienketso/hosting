@@ -55,7 +55,7 @@ function winmap_hosting_menu()
 
   $items['admin/hosting/connect-ssh-api'] = array(
     'title' => 'Api connect ssh',
-    'page callback' => 'winmap_connect_ssh_api',
+    'page callback' => 'winmap_api_ssh_connect',
     'access arguments' => array('winmap_hosting module'),
     'file' => 'winmap_hosting.inc',
     'type' => MENU_CALLBACK,
@@ -275,7 +275,7 @@ function winmap_ssh_close(&$connect) {
 
 function winmap_ssh_login($connect, $sshUser, $sshPass) {
   // Kiểm tra xem kết nối có phải là một đối tượng SSH hợp lệ không
-  if (isset($connect) && is_object($connect) && get_class($connect) === 'Net_SSH2') {
+  if (isset($connect) && is_object($connect) && get_class($connect) === 'phpseclib1.0.23/Net/SSH2') {
     // Thử đăng nhập với username và password
     if ($connect->login($sshUser, $sshPass)) {
       return TRUE; // Đăng nhập thành công
@@ -291,6 +291,7 @@ function winmap_ssh_login($connect, $sshUser, $sshPass) {
 }
 
 function winmap_ssh_connection($ip, $username, $password){
+
   if (!function_exists('ssh2_connect')) {
     return 'Module SSH2 chưa được cài đặt trong PHP.';
   }
@@ -503,16 +504,13 @@ function winmap_ssh_upload_file($connect, $fileName, $path) {
 function winmap_ftp_connect($ftp_server, $ftp_port, $ftp_user, $ftp_pass) {
   // Kết nối tới FTP server.
   $ftp_conn = ftp_connect($ftp_server, $ftp_port);
-
   // Kiểm tra kết nối.
   if ($ftp_conn === false) {
     watchdog('winmap_hosting', 'Could not connect to FTP server @server: @port', array('@server' => $ftp_server, '@port' => $ftp_port), WATCHDOG_ERROR);
     return array('success'=>false);
   }
-
   // Đăng nhập vào FTP server.
   $login = ftp_login($ftp_conn, $ftp_user, $ftp_pass);
-
   // Kiểm tra đăng nhập.
   if ($login === false) {
     ftp_close($ftp_conn);

@@ -46,14 +46,13 @@ function winmap_admin_hosting_edit_page($hosting) {
 
 function winmap_connect_ssh_api(){
   $result = winmap_ssh_connect('103.179.190.104');
-
   print_r($result);
 }
 
 function winmap_api_ssh_connect(){
-  $ip = '103.90.235.92';
-  $username = 'root';
-  $password = 'tyuAIPuBs5g4';
+  $ip = '103.179.190.104';
+  $username = 'ftp_winmap.vn';
+  $password = 'cafZ40_0';
   $connect = winmap_ssh_connection($ip, $username, $password);
 if (is_string($connect)) {
   // Xử lý lỗi kết nối.
