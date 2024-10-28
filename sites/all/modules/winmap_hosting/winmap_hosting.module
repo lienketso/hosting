@@ -213,7 +213,7 @@ function winmap_hosting_load($hostingId) {
 
 
 function winmap_ssh_connect($ip) {
-//  $ip = '103.179.190.104';
+
   module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Net/SSH2');
   module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/RC4');
   module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/Rijndael');
@@ -222,6 +222,8 @@ function winmap_ssh_connect($ip) {
   module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/TripleDES');
   module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Math/BigInteger');
   module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/Hash');
+
+//  include('phpseclib1.0.23/Net/SSH2.php');
 
   // Kiểm tra Ip
   if (!filter_var($ip, FILTER_VALIDATE_IP)) {
@@ -232,7 +234,6 @@ function winmap_ssh_connect($ip) {
   $password = 'cafZ40_0';
   $port = 22;
 
-  // Kiểm tra đăng nhập
   if (empty($username) || empty($password)) {
     return array('success' => FALSE, 'message' => 'Thông tin đăng nhập SSH không được để trống');
   }
@@ -245,10 +246,12 @@ function winmap_ssh_connect($ip) {
   fclose($pingable);
 
   $ssh = new Net_SSH2($ip, $port);
+  $ssh->setTimeout(30); // đặt thời gian chờ là 30 giây
+
   $output = $ssh->exec('ls -la');
   try {
     if (!$ssh->login($username, $password)) {
-      return array('success' => FALSE, 'message' => 'SSH login failed','ssh'=>$output);
+      return array('success' => FALSE, 'message' => 'SSH login failed','ssh'=>$output,'log'=>$ssh->getErrors());
     }
   } catch (Exception $e) {
     //ghi log system khi có lỗi
@@ -262,80 +265,54 @@ function crypt_random_string($length) {
   return bin2hex(random_bytes($length / 2));
 }
 
-function winmap_ssh_close(&$connect) {
-  // Kiểm tra xem kết nối có phải là một đối tượng hợp lệ của Net\SSH2 không
-  if (isset($connect) && is_object($connect) && get_class($connect) === 'phpseclib1.0.23/Net/SSH2') {
-    // Thực hiện đóng kết nối SSH bằng cách giải phóng biến
-    $connect = null; // Giải phóng tài nguyên kết nối
-    return TRUE; // Đóng kết nối thành công
-  }
-
-  return FALSE; // Kết nối không hợp lệ hoặc đã được đóng trước đó
-}
-
-function winmap_ssh_login($connect, $sshUser, $sshPass) {
-  // Kiểm tra xem kết nối có phải là một đối tượng SSH hợp lệ không
-  if (isset($connect) && is_object($connect) && get_class($connect) === 'phpseclib1.0.23/Net/SSH2') {
-    // Thử đăng nhập với username và password
-    if ($connect->login($sshUser, $sshPass)) {
-      return TRUE; // Đăng nhập thành công
-    } else {
-      watchdog('winmap_ssh_login', 'SSH login failed for user: @user', array('@user' => $sshUser), WATCHDOG_WARNING);
-      return FALSE; // Đăng nhập thất bại
-    }
-  }
-
-  // Nếu kết nối không hợp lệ
-  watchdog('winmap_ssh_login', 'Invalid SSH connection provided.', array(), WATCHDOG_ERROR);
-  return FALSE;
-}
-
 function winmap_ssh_connection($ip, $username, $password){
-
+  $port = 22;
   if (!function_exists('ssh2_connect')) {
     return 'Module SSH2 chưa được cài đặt trong PHP.';
   }
-
-  // Tạo kết nối SSH.
-  $connection = ssh2_connect($ip, 22);
+  $connection = ssh2_connect($ip, $port);
   if (!$connection) {
     return 'Không thể kết nối đến máy chủ SSH. Vui lòng kiểm tra lại địa chỉ IP.';
   }
-
-  // Xác thực bằng tên đăng nhập và mật khẩu.
   if (!ssh2_auth_password($connection, $username, $password)) {
     return 'Xác thực SSH không thành công. Vui lòng kiểm tra lại thông tin đăng nhập.';
   }
-
-  // Trả về resource kết nối nếu thành công.
   return $connection;
+}
+
+function winmap_ssh_close(&$connect) {
+  if (isset($connect)) {
+    ssh2_disconnect($connect);
+    return TRUE;
+  }
+  return FALSE; // Kết nối không hợp lệ hoặc đã được đóng trước đó
+}
+
+// Hàm đăng nhập SSH
+function winmap_ssh_login($connection, $username, $password)
+{
+  if (!ssh2_auth_password($connection, $username, $password)) {
+    return 'Xác thực SSH không thành công. Vui lòng kiểm tra lại thông tin đăng nhập.';
+  }
+  return true;
 }
 
 function winmap_ssh_sql_create_db($connect, $dbName, $dbUser, $dbPass, $domain) {
   // Kiểm tra xem kết nối có phải là một đối tượng SSH hợp lệ không
-  if (isset($connect) && is_object($connect) && get_class($connect) === 'Net_SSH2') {
-    $createDbCommand = "CREATE DATABASE `$dbName`;";
-    $createUserCommand = "CREATE USER '$dbUser'@'localhost' IDENTIFIED BY '$dbPass';";
-    // Gán quyền
-    $grantPrivilegesCommand = "GRANT ALL PRIVILEGES ON `$dbName`.* TO '$dbUser'@'localhost';";
-    // Làm mới quyền
-    $flushPrivilegesCommand = "FLUSH PRIVILEGES;";
-
-    // Gửi và thực thi các lệnh qua SSH
+  if (!$connect) {
+    return 'Không có kết nối SSH hợp lệ.';
+  }
+  if (isset($connect)) {
+    // Lệnh SQL để tạo database và user
     $commands = [
-      $createDbCommand,
-      $createUserCommand,
-      $grantPrivilegesCommand,
-      $flushPrivilegesCommand
+      "CREATE DATABASE `$dbName`;",
+      "CREATE USER `$dbUser`@'%' IDENTIFIED BY '$dbPass';",
+      "GRANT ALL PRIVILEGES ON `$dbName`.* TO `$dbUser`@'%';",
+      "FLUSH PRIVILEGES;"
     ];
-
-    foreach ($commands as $command) {
-      $output = $connect->exec($command);
-      // Kiểm tra nếu lệnh thực thi không thành công
-      if ($output === false) {
-        watchdog('winmap_ssh_sql_create_db', 'Không thực hiện được lệnh: @command', array('@command' => $command), WATCHDOG_ERROR);
-        return FALSE; // Trả về false nếu có lỗi
-      }
+    $command = implode(" ", $commands);
+    if (!ssh2_exec($connect, "mysql -u root -p '' -e \"$command\"")) {
+      return 'Không thể thực thi lệnh SQL để tạo database. Vui lòng kiểm tra quyền truy cập và cấu hình.';
     }
     watchdog('winmap_ssh_sql_create_db', 'Database @dbname được khởi tạo thành công cho domain @domain',
       array('@dbname' => $dbName, '@domain' => $domain), WATCHDOG_NOTICE);
@@ -347,32 +324,27 @@ function winmap_ssh_sql_create_db($connect, $dbName, $dbUser, $dbPass, $domain) 
 }
 
 function winmap_ssh_sql_import_db($connect, $dbName, $dbUser, $dbPass, $path) {
-
-  if (isset($connect) && is_object($connect) && get_class($connect) === 'Net_SSH2') {
-    // Kiểm tra xem đường dẫn tệp SQL có hợp lệ không
+  if (!$connect) {
+    return 'Không có kết nối SSH hợp lệ.';
+  }
+  if (isset($connect)) {
     if (!file_exists($path)) {
-      watchdog('winmap_ssh_sql_import_db', 'SQL file not found at path: @path', array('@path' => $path), WATCHDOG_ERROR);
-      return FALSE;
+      return 'File SQL không tồn tại. Vui lòng kiểm tra lại đường dẫn file.';
     }
-
-    // Lệnh để import cơ sở dữ liệu từ tệp SQL
-    $importCommand = "mysql -u$dbUser -p$dbPass $dbName < $path";
-
-    // Thực thi lệnh qua SSH
-    $output = $connect->exec($importCommand);
-
-    // Kiểm tra nếu lệnh thực thi không thành công
-    if ($output === false) {
+    $command= "mysql -u$dbUser -p$dbPass $dbName < $path";
+    // Thực thi lệnh import qua SSH
+    $stream = ssh2_exec($connect, $command);
+    // Đọc lỗi từ lệnh
+    stream_set_blocking($stream, true);
+    $output = stream_get_contents($stream);
+    fclose($stream);
+    if ($output) {
       watchdog('winmap_ssh_sql_import_db', 'Không thể nhập cơ sở dữ liệu: @dbname từ file: @path', array('@dbname' => $dbName, '@path' => $path), WATCHDOG_ERROR);
       return FALSE;
     }
-
     watchdog('winmap_ssh_sql_import_db', 'Database @dbname đã nhập thành công từ file: @path', array('@dbname' => $dbName, '@path' => $path), WATCHDOG_NOTICE);
     return TRUE; // Import thành công
   }
-
-  // Nếu kết nối không hợp lệ
-  watchdog('winmap_ssh_sql_import_db', 'Kết nối SSH không hợp lệ', array(), WATCHDOG_ERROR);
   return FALSE;
 }
 

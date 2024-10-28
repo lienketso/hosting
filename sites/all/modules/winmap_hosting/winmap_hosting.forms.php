@@ -43,7 +43,7 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
     '#default_value' => !empty($hosting->sshPass)?$hosting->sshPass:'',
     '#size' => 60,
     '#maxlength' => 80,
-    '#required' => TRUE,
+    '#required' => FALSE,
   ];
   $form['mysqlPort'] = [
     '#type' => 'textfield',
@@ -57,13 +57,13 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
   $form['mysqlUser'] = [
     '#type' => 'textfield',
     '#title' => t('Mysql User'),
-    '#default_value' => !empty($hosting->sshUser)?$hosting->sshUser:'',
+    '#default_value' => !empty($hosting->mysqlUser)?$hosting->mysqlUser:'',
     '#size' => 60,
     '#maxlength' => 128,
     '#required' => TRUE,
   ];
   $form['mysqlPass'] = [
-    '#type' => 'password',
+    '#type' => 'textfield',
     '#title' => t('Mysql password'),
     '#default_value' => !empty($hosting->mysqlPass)?$hosting->mysqlPass:'',
     '#size' => 60,
@@ -113,12 +113,12 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
     '#required' => TRUE,
   ];
   $form['ftpPass'] = [
-    '#type' => 'password',
+    '#type' => 'textfield',
     '#title' => t('Ftp password'),
     '#default_value' => !empty($hosting->ftpPass)?$hosting->ftpPass:'',
     '#size' => 60,
     '#maxlength' => 128,
-    '#required' => TRUE,
+    '#required' => FALSE,
   ];
   $form['status'] = array(
     '#type' => 'select',
@@ -137,15 +137,42 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
   return $form;
 }
 
+
+function validate_ip_address($ip) {
+  // Biểu thức chính quy để kiểm tra địa chỉ IP IPv4 từ 0 đến 255
+  $pattern = '/^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$/';
+  // Kiểm tra nếu IP phù hợp với biểu thức chính quy
+  return preg_match($pattern, $ip) === 1;
+}
 function winmap_hosting_form_validate($form, $form_state) {
 //  form_set_error('name', t('Weight value must be numeric.'));
   $hosting = $form_state['#hosting'];
+  $domain = $form_state['values']['domainName'];
+  $ip = $form_state['values']['ipv4'];
+  if(!validate_ip_address($ip)){
+    form_set_error('', 'Địa chỉ ip không hợp lệ');
+  }
+  // Kiểm tra tính duy nhất của domain
+  $query = db_select('winmap_hostings', 'we')
+    ->fields('we', array('domainName'))
+    ->condition('domainName', $domain);
+  // Bỏ qua bản ghi hiện tại nếu đang chỉnh sửa
+  if (!empty($form_state['#hosting']->id)) {
+    $query->condition('id', $form_state['#hosting']->id, '<>');
+  }
+  $existing_domain = $query->execute()->fetchField();
+  if ($existing_domain) {
+    form_set_error('domain', t('The domain "@domain" already exists. Please choose a unique domain.', array('@domain' => $domain)));
+    return;
+  }
+
   if (!empty($hosting->id)) {
     $last_changed = winmap_hosting_last_changed($hosting->id);
     if ($last_changed != $hosting->changed) {
       form_set_error('', 'Có người dùng khác đang cập nhật, vui lòng thử lại sau');
     }
   }
+
 
 }
 
@@ -158,6 +185,7 @@ function winmap_hosting_form_submit($form, &$form_state) {
     $hosting->sshPass = $form_state['values']['sshPass'];
     $hosting->sshUser = $form_state['values']['sshUser'];
     $hosting->mysqlPort = $form_state['values']['mysqlPort'];
+    $hosting->mysqlUser = $form_state['values']['mysqlUser'];
     $hosting->mysqlPass = $form_state['values']['mysqlPass'];
     $hosting->maxCcu = $form_state['values']['maxCcu'];
     $hosting->usedCcu = $form_state['values']['usedCcu'];
@@ -168,7 +196,8 @@ function winmap_hosting_form_submit($form, &$form_state) {
     $hosting->status = $form_state['values']['status'];
     $hosting = hosting_save($hosting);
     if (!empty($hosting)) {
-      drupal_set_message(t('Hosting '.$hosting->name.' has bean created.'));
+      $hostingData = winmap_hosting_load($hosting);
+      drupal_set_message(t('Hosting '.$hostingData->name.' has bean created.'));
       drupal_goto('admin/hostings');
     }else {
       drupal_set_message(t('System is busy.'));

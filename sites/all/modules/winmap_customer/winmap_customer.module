@@ -21,6 +21,15 @@ function winmap_customer_init() {
  */
 function winmap_customer_menu() {
   $items = array();
+  //register enterprise
+  $items['enterprise/register'] = array(
+    'type' => MENU_CALLBACK,
+    'page callback' => 'winmap_enterprise_register_page_callback',
+    'title' => t('Home'),
+    'access arguments' => array('access content'),
+    'file' => 'winmap_customer.inc',
+  );
+
   $items['admin/enterprises'] = array(
     'type' => MENU_NORMAL_ITEM,
     'page callback' => 'winmap_customer_page_callback',
@@ -138,16 +147,13 @@ function customer_save($customer){
     module_invoke_all('winmap_customer_presave', $customer, $op);
     if ($op == 'insert') {
        $customer->created = $customer->changed = REQUEST_TIME;
-//        $saved = drupal_write_record('winmap_enterprises', $customer);
         $saved = db_insert('winmap_enterprises')
         ->fields((array) $customer)
         ->execute();
         if (!$saved) {
           watchdog('winmap_enterprises', 'Failed to insert customer with data: <pre>@data</pre>', ['@data' => print_r($customer, TRUE)], WATCHDOG_ERROR);
         }
-
     } elseif ($op == 'update') {
-//      $saved = drupal_write_record('winmap_enterprises', $customer, array('id'));
       $saved = db_update('winmap_enterprises')
         ->fields((array)$customer)
         ->condition('id', $customer->id)
@@ -169,6 +175,7 @@ function customer_save($customer){
  *
  * */
 include(DRUPAL_ROOT."/sites/all/modules/winmap_customer/winmap_customer.forms.php");
+include(DRUPAL_ROOT."/sites/all/modules/winmap_customer/winmap_enterprise_register.forms.php");
 
 
 

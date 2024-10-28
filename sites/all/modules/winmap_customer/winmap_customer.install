@@ -3,104 +3,134 @@
 /**
  * Performs database updates and uninstallation cleanup for the winmap_customer module.
  */
-function winmap_customer_update_7302(){
+//function winmap_customer_update_7302(){
+//  $schema = array();
+//  $transaction = db_transaction();
+//  try {
+//    $schema['winmap_enterprises'] = array(
+//      'fields' => array(
+//        'id' => array(
+//          'type' => 'serial',
+//          'unsigned' => TRUE,
+//          'not null' => TRUE,
+//          'size' => 'big',
+//        ),
+//        'hostingId' => array(
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => TRUE,
+//          'default' => 0,
+//        ),
+//        'domain' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => TRUE,
+//        ),
+//        'name' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => TRUE,
+//          'default' => ''
+//        ),
+//        'email' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => TRUE,
+//        ),
+//        'phone' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => TRUE,
+//          'default' => ''
+//        ),
+//        'username' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'password' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => TRUE,
+//          'default' => ''
+//        ),
+//        'adminAccessKey' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'sideAccessKey' => array(
+//          'type' => 'varchar',
+//          'length' => 255,
+//          'not null' => FALSE,
+//          'default' => ''
+//        ),
+//        'status' => array( //trạng thái
+//          'type' => 'int',
+//          'size' => 'tiny',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//        'created' => array( //Ngày tạo
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//        'changed' => array( //Ngày cập nhật
+//          'type' => 'int',
+//          'size' => 'big',
+//          'not null' => FALSE,
+//          'default' => 0,
+//        ),
+//      ),
+//      'unique keys' => array(
+//        'domain'     => array('domain')
+//      ),
+//      'primary key' => array('id'),
+//      'indexes' => array(
+//        'wtr_name' => array('name'),
+//        'wtr_domain' => array('domain'),
+//        'wtr_email' => array('email'),
+//        'wtr_phone' => array('phone'),
+//        'wtr_created' => array('created'),
+//        'wtr_changed' => array('changed'),
+//        'hostingId' => array('hostingId'),
+//      ),
+//    );
+//    db_create_table('winmap_enterprises', $schema['winmap_enterprises']);
+//  } catch (Exception $e) {
+//    $transaction->rollback();
+//    return $e->getMessage();
+//  }
+//}
+
+//function winmap_customer_update_7303(){
+//  $schema = array();
+//  $transaction = db_transaction();
+//  try {
+//
+//    db_add_field('winmap_enterprises', 'companyName', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+//    db_add_field('winmap_enterprises', 'companyPhone', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+//    db_add_field('winmap_enterprises', 'ownerName', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+//    db_add_field('winmap_enterprises', 'ownerPhone', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+//    db_add_field('winmap_enterprises', 'ownerAddress', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+//
+//  } catch (Exception $e) {
+//    $transaction->rollback();
+//    return $e->getMessage();
+//  }
+//}
+
+function winmap_customer_update_7304(){
   $schema = array();
   $transaction = db_transaction();
   try {
-    $schema['winmap_enterprises'] = array(
-      'fields' => array(
-        'id' => array(
-          'type' => 'serial',
-          'unsigned' => TRUE,
-          'not null' => TRUE,
-          'size' => 'big',
-        ),
-        'hostingId' => array(
-          'type' => 'int',
-          'size' => 'big',
-          'not null' => TRUE,
-          'default' => 0,
-        ),
-        'domain' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not null' => TRUE,
-        ),
-        'name' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not null' => TRUE,
-          'default' => ''
-        ),
-        'email' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not null' => TRUE,
-        ),
-        'phone' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not null' => TRUE,
-          'default' => ''
-        ),
-        'username' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not null' => FALSE,
-          'default' => ''
-        ),
-        'password' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not null' => TRUE,
-          'default' => ''
-        ),
-        'adminAccessKey' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not null' => FALSE,
-          'default' => ''
-        ),
-        'sideAccessKey' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not null' => FALSE,
-          'default' => ''
-        ),
-        'status' => array( //trạng thái
-          'type' => 'int',
-          'size' => 'tiny',
-          'not null' => FALSE,
-          'default' => 0,
-        ),
-        'created' => array( //Ngày tạo
-          'type' => 'int',
-          'size' => 'big',
-          'not null' => FALSE,
-          'default' => 0,
-        ),
-        'changed' => array( //Ngày cập nhật
-          'type' => 'int',
-          'size' => 'big',
-          'not null' => FALSE,
-          'default' => 0,
-        ),
-      ),
-      'unique keys' => array(
-        'domain'     => array('domain')
-      ),
-      'primary key' => array('id'),
-      'indexes' => array(
-        'wtr_name' => array('name'),
-        'wtr_domain' => array('domain'),
-        'wtr_email' => array('email'),
-        'wtr_phone' => array('phone'),
-        'wtr_created' => array('created'),
-        'wtr_changed' => array('changed'),
-        'hostingId' => array('hostingId'),
-      ),
-    );
-    db_create_table('winmap_enterprises', $schema['winmap_enterprises']);
+
+    db_add_field('winmap_enterprises', 'companyAddress', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+
   } catch (Exception $e) {
     $transaction->rollback();
     return $e->getMessage();

@@ -1,24 +1,7 @@
 <?php
-
-function winmap_customer_form($form, &$form_state, $customer = NULL){
+function winmap_enterprise_register_form($form, &$form_state, $customer = NULL){
   $form = array();
   $form['#customer'] = $form_state['#customer'] = $customer;
-  $options = [];
-  $result = db_select('winmap_hostings', 'h')
-    ->fields('h', ['id', 'name'])
-    ->execute();
-
-  foreach ($result as $row) {
-    $options[$row->id] = $row->name;
-  }
-  $form['name'] = [
-    '#type' => 'textfield',
-    '#title' => t('Name'),
-    '#default_value' => !empty($customer->name)?$customer->name:'',
-    '#size' => 60,
-    '#maxlength' => 128,
-    '#required' => TRUE,
-  ];
   $form['domain'] = [
     '#type' => 'textfield',
     '#title' => t('Domain name'),
@@ -27,12 +10,13 @@ function winmap_customer_form($form, &$form_state, $customer = NULL){
     '#maxlength' => 128,
     '#required' => TRUE,
   ];
-  $form['hostingId'] = [
-    '#type' => 'select',
-    '#title' => t('Select Hosting'),
-    '#options' => $options,
+  $form['name'] = [
+    '#type' => 'textfield',
+    '#title' => t('Full name'),
+    '#default_value' => !empty($customer->name)?$customer->name:'',
+    '#size' => 60,
+    '#maxlength' => 128,
     '#required' => TRUE,
-    '#default_value' => !empty($customer->hostingId)?$customer->hostingId:'',
   ];
   $form['email'] = [
     '#type' => 'textfield',
@@ -64,8 +48,15 @@ function winmap_customer_form($form, &$form_state, $customer = NULL){
     '#default_value' => !empty($customer->password)?$customer->password:'',
     '#size' => 60,
     '#maxlength' => 128,
-    '#description' => t('Leave blank if you do not want to change the password.'),
-    '#required' => FALSE,
+    '#required' => TRUE,
+  ];
+  $form['confirm_password'] = [
+    '#type' => 'password',
+    '#title' => t('Confirm password'),
+    '#default_value' => '',
+    '#size' => 60,
+    '#maxlength' => 128,
+    '#required' => TRUE,
   ];
   $form['companyName'] = [
     '#type' => 'textfield',
@@ -115,100 +106,64 @@ function winmap_customer_form($form, &$form_state, $customer = NULL){
     '#maxlength' => 128,
     '#required' => FALSE,
   ];
-  $form['adminAccessKey'] = [
-    '#type' => 'textfield',
-    '#title' => t('Admin access key'),
-    '#default_value' => !empty($customer->adminAccessKey)?$customer->adminAccessKey:'',
-    '#size' => 60,
-    '#maxlength' => 128,
-    '#required' => TRUE,
-  ];
-  $form['sideAccessKey'] = [
-    '#type' => 'textfield',
-    '#title' => t('Site access key'),
-    '#default_value' => !empty($customer->sideAccessKey)?$customer->sideAccessKey:'',
-    '#size' => 60,
-    '#maxlength' => 128,
-    '#required' => TRUE,
-  ];
-  $form['status'] = array(
-    '#type' => 'select',
-    '#title' => t('Status'),
-    '#options' => array(
-      0 => t('No'),
-      1 => t('Yes'),
-    ),
-    '#default_value' => !empty($customer->status)?$customer->status:'0',
-    '#description' => t('Set this to <em>Yes</em> if you would like this category to be selected by default.'));
-
-  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
-
+  $form['#validate'][] = 'winmap_enterprise_register_form_validate';
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Register now'));
   return $form;
 }
 
-function winmap_customer_form_validate($form, $form_state) {
-//  form_set_error('name', t('Weight value must be numeric.'));
-  $customer = $form_state['#customer'];
-  if (!empty($customer->id)) {
-    $last_changed = winmap_customer_last_changed($customer->id);
-    if ($last_changed != $customer->changed) {
-      form_set_error('', 'Có người dùng khác đang cập nhật, vui lòng thử lại sau');
-    }
+function validate_confirm_password($password, $confirmPassword) {
+  return $password === $confirmPassword;
+}
+
+function winmap_enterprise_register_form_validate($form, &$form_state) {
+  $domain = $form_state['values']['domain'];
+  $password = $form_state['values']['password'];
+  $confirmPassword = $form_state['values']['confirm_password'];
+  // Kiểm tra tính duy nhất của domain
+
+  $query = db_select('winmap_enterprises', 'we')
+    ->fields('we', array('domain'))
+    ->condition('domain', $domain);
+  $existing_domain = $query->execute()->fetchField();
+  if ($existing_domain) {
+    form_set_error('domain', t('The domain "@domain" already exists. Please choose a unique domain.', array('@domain' => $domain)));
+    return false;
+  }
+  //Check mật khẩu
+  if(!validate_confirm_password($password,$confirmPassword)){
+    form_set_error('confirm_password', t('The confirm password does not macth.'));
+    return false;
   }
 }
 
-
-function winmap_customer_form_submit($form, &$form_state) {
+function winmap_enterprise_register_form_submit($form, &$form_state) {
   try {
-
     $customer = $form_state['#customer'] ?? new stdClass();
+    $hostingId = isset($_GET['hostingId']) ? $_GET['hostingId'] : 0;
+    $customer->hostingId = $hostingId;
     $customer->name = $form_state['values']['name'];
     $customer->domain = $form_state['values']['domain'];
-    $domain = $form_state['values']['domain'];
-    // Kiểm tra tính duy nhất của domain
-    $query = db_select('winmap_enterprises', 'we')
-      ->fields('we', array('domain'))
-      ->condition('domain', $domain);
-    // Bỏ qua bản ghi hiện tại nếu đang chỉnh sửa
-    if (!empty($form_state['#customer']->id)) {
-      $query->condition('id', $form_state['#customer']->id, '<>');
-    }
-    $existing_domain = $query->execute()->fetchField();
-    if ($existing_domain) {
-      form_set_error('domain', t('The domain "@domain" already exists. Please choose a unique domain.', array('@domain' => $domain)));
-      return;
-    }
-    $customer->hostingId = $form_state['values']['hostingId'];
     $customer->email = $form_state['values']['email'];
     $customer->phone = $form_state['values']['phone'];
     $customer->username = $form_state['values']['username'];
+    $customer->password = password_hash($form_state['values']['password'], PASSWORD_DEFAULT);
     $customer->companyName = $form_state['values']['companyName'];
     $customer->companyPhone = $form_state['values']['companyPhone'];
     $customer->companyAddress = $form_state['values']['companyAddress'];
     $customer->ownerName = $form_state['values']['ownerName'];
     $customer->ownerPhone = $form_state['values']['ownerPhone'];
     $customer->ownerAddress = $form_state['values']['ownerAddress'];
-    // Chỉ cập nhật password nếu có giá trị mới
-    if (!empty($form_state['values']['password'])) {
-      $customer->password = password_hash($form_state['values']['password'], PASSWORD_DEFAULT);
-    } else {
-      // Giữ lại password cũ
-      $customer->password = $form_state['#customer']->password;
-    }
-
-    $customer->adminAccessKey = $form_state['values']['adminAccessKey'];
-    $customer->sideAccessKey = $form_state['values']['sideAccessKey'];
-    $customer->status = $form_state['values']['status'];
+    $customer->status = 0;
     $customer = customer_save($customer);
     if(!empty($customer)){
       $customerLoad = customer_load($customer);
       drupal_set_message(t('Customer '.$customerLoad->name.' has bean created.'));
-      drupal_goto('admin/enterprises');
+      drupal_goto('enterprise/register');
     }else{
       drupal_set_message(t('System is busy.'));
     }
-  } catch (Exception $e) {
-    // Handle error.
+  }catch (Exception $e){
     drupal_set_message(t('An error occurred: @message', array('@message' => $e->getMessage())), 'error');
   }
+
 }
