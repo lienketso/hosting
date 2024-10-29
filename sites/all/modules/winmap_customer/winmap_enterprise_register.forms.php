@@ -9,6 +9,7 @@ function winmap_enterprise_register_form($form, &$form_state, $customer = NULL){
     '#size' => 60,
     '#maxlength' => 128,
     '#required' => TRUE,
+    '#attributes' => array('placeholder'=> 'Ex:enterprise')
   ];
   $form['name'] = [
     '#type' => 'textfield',
@@ -119,28 +120,26 @@ function winmap_enterprise_register_form_validate($form, &$form_state) {
   $domain = $form_state['values']['domain'];
   $password = $form_state['values']['password'];
   $confirmPassword = $form_state['values']['confirm_password'];
+  if (!preg_match('/^[a-z0-9\-]+$/', $domain)) {
+    form_set_error('domain', t('The domain "@domain" contains invalid characters. Only lowercase letters (a-z), numbers (0-9), and hyphens (-) are allowed.', array('@domain' => $domain)));
+  }
   // Kiểm tra tính duy nhất của domain
-
   $query = db_select('winmap_enterprises', 'we')
     ->fields('we', array('domain'))
     ->condition('domain', $domain);
   $existing_domain = $query->execute()->fetchField();
   if ($existing_domain) {
     form_set_error('domain', t('The domain "@domain" already exists. Please choose a unique domain.', array('@domain' => $domain)));
-    return false;
   }
   //Check mật khẩu
   if(!validate_confirm_password($password,$confirmPassword)){
     form_set_error('confirm_password', t('The confirm password does not macth.'));
-    return false;
   }
 }
 
 function winmap_enterprise_register_form_submit($form, &$form_state) {
   try {
     $customer = $form_state['#customer'] ?? new stdClass();
-    $hostingId = isset($_GET['hostingId']) ? $_GET['hostingId'] : 0;
-    $customer->hostingId = $hostingId;
     $customer->name = $form_state['values']['name'];
     $customer->domain = $form_state['values']['domain'];
     $customer->email = $form_state['values']['email'];
@@ -157,6 +156,23 @@ function winmap_enterprise_register_form_submit($form, &$form_state) {
     $customer = customer_save($customer);
     if(!empty($customer)){
       $customerLoad = customer_load($customer);
+      //get hosting have usedCcu > 40
+      $hosting= db_select('winmap_hostings', 't')
+        ->fields('t')
+        ->condition('usedCCu', 40, '<')
+        ->range(0, 1)
+        ->execute()
+        ->fetchObject();
+      if(!empty($hosting)){
+        //create subdomain in hosting
+        winmap_ssh_create_sub_domain($hosting->ipv4,$hosting->sshUser,$hosting->sshPassword,$hosting->apiToken,$customerLoad->domain,$hosting->domainName,$hosting->domainPath);
+        //create dns record by cloud flare
+        winmap_dns_create_domain($customerLoad->domain,$hosting->ipv4);
+      }else{
+        drupal_set_message(t('Server busy, please try again later'));
+      }
+
+
       drupal_set_message(t('Customer '.$customerLoad->name.' has bean created.'));
       drupal_goto('enterprise/register');
     }else{

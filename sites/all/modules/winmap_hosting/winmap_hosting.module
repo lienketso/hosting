@@ -210,61 +210,6 @@ function winmap_hosting_load($hostingId) {
   }
 }
 
-
-
-function winmap_ssh_connect($ip) {
-
-  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Net/SSH2');
-  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/RC4');
-  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/Rijndael');
-  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/Twofish');
-  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/Blowfish');
-  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/TripleDES');
-  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Math/BigInteger');
-  module_load_include('php', 'winmap_hosting', 'phpseclib1.0.23/Crypt/Hash');
-
-//  include('phpseclib1.0.23/Net/SSH2.php');
-
-  // Kiểm tra Ip
-  if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-    return array('success' => FALSE, 'message' => 'Địa chỉ Ip không hợp lệ');
-  }
-
-  $username = 'ftp_winmap.vn';
-  $password = 'cafZ40_0';
-  $port = 22;
-
-  if (empty($username) || empty($password)) {
-    return array('success' => FALSE, 'message' => 'Thông tin đăng nhập SSH không được để trống');
-  }
-
-  // Kiểm tra xem máy chủ có thể liên lạc được không.
-  $pingable = @fsockopen($ip, $port, $errno, $errstr, 5); // 5 giây timeout.
-  if (!$pingable) {
-    return array('success' => FALSE, 'message' => 'Máy chủ không thể truy cập được: ' . $errstr);
-  }
-  fclose($pingable);
-
-  $ssh = new Net_SSH2($ip, $port);
-  $ssh->setTimeout(30); // đặt thời gian chờ là 30 giây
-
-  $output = $ssh->exec('ls -la');
-  try {
-    if (!$ssh->login($username, $password)) {
-      return array('success' => FALSE, 'message' => 'SSH login failed','ssh'=>$output,'log'=>$ssh->getErrors());
-    }
-  } catch (Exception $e) {
-    //ghi log system khi có lỗi
-    watchdog('winmap_ssh_connect', 'Không kết nối được với SSH: ' . $e->getMessage(), array(), WATCHDOG_ERROR);
-    return array('success' => FALSE, 'message' => 'Không kết nối được với SSH : ' . $e->getMessage());
-  }
-
-  return $ssh;
-}
-function crypt_random_string($length) {
-  return bin2hex(random_bytes($length / 2));
-}
-
 function winmap_ssh_connection($ip, $username, $password){
   $port = 22;
   if (!function_exists('ssh2_connect')) {
@@ -348,11 +293,39 @@ function winmap_ssh_sql_import_db($connect, $dbName, $dbUser, $dbPass, $path) {
   return FALSE;
 }
 
+//connect plesk api
+function winmap_connect_plesk_api($host,$ip,$username,$password,$apiToken){
+  $plesk_host = 'https://'.$host.':8443';
+  $url = $plesk_host . "/api/v2/domains";
+  $headers = [
+    'Authorization: Basic ' . base64_encode("$username:$password"),
+    'Authorization: Bearer ' . $apiToken,
+    'Content-Type: application/json'
+  ];
+  // Khởi tạo kết nối CURL
+  $ch = curl_init($url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Bỏ qua kiểm tra SSL
+  curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+  // Thực hiện gọi API
+  $response = curl_exec($ch);
+
+  // Kiểm tra lỗi kết nối
+  if (curl_errno($ch)) {
+    $error_msg = curl_error($ch);
+    curl_close($ch);
+    return "Error connecting to Plesk API: " . $error_msg;
+  }
+
+  curl_close($ch);
+  return $response; // Trả về kết quả kết nối
+}
 
 function winmap_ssh_create_domain($host, $domain, $ip, $username, $password) {
 //  $host = 'https://103.179.190.104:8443';
   $plesk_host = 'https://'.$host.':8443';
-  $api_token = '';
+  $api_token = ''; //token access api plesk
   $url = $plesk_host . "/api/v2/domains";
 
   $data = [
@@ -387,33 +360,84 @@ function winmap_ssh_create_domain($host, $domain, $ip, $username, $password) {
 
 }
 
-function winmap_ssh_create_sub_domain($connect, $domain, $subDomain, $ip){
-  $ch = $connect['ch'];
-  $apiUrl = $connect['apiUrl'];
-  // Dữ liệu JSON cho yêu cầu tạo subdomain
-  $data = array(
-    'name' => "$subDomain.$domain",
-    'ip_address' => $ip,
-    'parent_domain' => $domain,
-  );
+function winmap_get_webspace_by_domain($host, $username, $password, $apiToken, $domainName) {
+  $plesk_host = 'https://' . $host . ':8443';
+  $url = $plesk_host . "/api/v2/domains?filter[name]=$domainName";
 
-  // Thiết lập cURL cho yêu cầu POST
-  curl_setopt($ch, CURLOPT_URL, $apiUrl . "domains");
+  // Cấu hình headers với Bearer Token
+  $headers = [
+    'Authorization: Bearer ' . $apiToken,
+    'Content-Type: application/json'
+  ];
+
+  // Khởi tạo cURL
+  $ch = curl_init($url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Bỏ qua xác thực SSL
+  curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+  curl_setopt($ch, CURLOPT_HTTPGET, true);
+
+  // Gửi yêu cầu tới API
+  $response = curl_exec($ch);
+
+  // Kiểm tra lỗi cURL
+  if (curl_errno($ch)) {
+    $error_msg = curl_error($ch);
+    curl_close($ch);
+    return "Error retrieving domain info: " . $error_msg;
+  }
+
+  curl_close($ch);
+  return json_decode($response, true); // Trả về kết quả từ API
+}
+function winmap_ssh_create_sub_domain($ipHost, $username, $password, $apiToken, $subdomain, $parentDomain,$domainPath){
+  //username, password phải là tài khoản admin cao nhất của plesk
+  $plesk_host = 'https://' . $ipHost . ':8443';
+  $url = $plesk_host . "/api/v2/domains";
+
+  // Cấu hình headers với Basic Auth và Bearer Token cho API Plesk
+  $headers = [
+    'Authorization: Basic ' . base64_encode("$username:$password"),
+    'Authorization: Bearer ' . $apiToken,
+    'Content-Type: application/json'
+  ];
+
+  // Dữ liệu JSON để tạo subdomain
+  $webspace = winmap_get_webspace_by_domain($plesk_host, $username, $password, $apiToken, $parentDomain);
+  if (isset($webspace['domains']) && count($webspace['domains']) > 0) {
+    $domainInfo = $webspace['domains'][0];
+    $webspaceId = $domainInfo['webspace_id']; // ID của webspace
+  } else {
+    $webspaceId = 0;
+  }
+  $data = [
+    'name' => $subdomain . '.' . $parentDomain,
+    'parentDomain' => $parentDomain,
+    'type' => 'vrt_hst',  // Xác định loại là subdomain (vrt_hst là virtual hosting trong Plesk)
+    'hosting_type' => 'virtual',
+    'webspace' => [
+      'name' => $parentDomain,
+      'id' => $webspaceId // ID của webspace, cần xác định đúng theo cấu hình
+    ],
+    'documentRoot' => $domainPath // Thư mục muốn trỏ đến
+  ];
+
+  $ch = curl_init($url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Bỏ qua xác thực SSL
+  curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
   curl_setopt($ch, CURLOPT_POST, true);
   curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-  curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
 
-  // Thực hiện yêu cầu và nhận phản hồi
   $response = curl_exec($ch);
-  $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-  if ($httpCode == 201) {
-    watchdog('plesk_create_sub_domain', 'Subdomain @subdomain được tạo dưới domain @domain', array('@subdomain' => "$subDomain.$domain", '@domain' => $domain), WATCHDOG_NOTICE);
-    return TRUE;
-  } else {
-    watchdog('plesk_create_sub_domain', 'Lỗi tạo subdomain: @subdomain', array('@subdomain' => "$subDomain.$domain"), WATCHDOG_ERROR);
-    return FALSE;
+  // Kiểm tra lỗi nếu có
+  if (curl_errno($ch)) {
+    $error_msg = curl_error($ch);
+    curl_close($ch);
+    watchdog('plesk_create_sub_domain', 'Lỗi tạo subdomain: @subdomain', array('error'=>$error_msg), WATCHDOG_ERROR);
   }
+  curl_close($ch);
+  return TRUE;
 }
 
 function winmap_ssh_create_folder($connect, $folderName, $path) {
@@ -575,7 +599,7 @@ function winmap_dns_create_domain($domainName, $ip) {
 
   $cloudflareToken ="BX4I60roVBRRA9fnsrUSRceLd2-EV-ocp42DO1Cs";
   $zoneId = "01f1e81cd518dff25bef99c334a146be"; //id lấy từ tên miền tại cloud flare
-  $apiUrl = "https://api.cloudflare.com/client/v4/zones/$zoneId/dns_records";
+  $apiUrl = "https://api.cloudflare.com/client/v4/zones/".$zoneId."/dns_records";
 
   // Dữ liệu gửi đi cho bản ghi DNS
   $data = array(

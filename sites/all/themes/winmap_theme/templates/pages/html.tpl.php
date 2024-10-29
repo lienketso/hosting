@@ -59,7 +59,7 @@
 <html<?php print $html_attributes;?><?php print $rdf_namespaces;?>>
 <head>
     <link rel="profile" href="<?php print $grddl_profile; ?>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <?php print $head; ?>
     <title><?php print $head_title; ?></title>
     <?php print $styles; ?>

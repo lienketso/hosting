@@ -44,11 +44,6 @@ function winmap_admin_hosting_edit_page($hosting) {
   return _winmap_render_theme("module","winmap_hosting","templates/pages/hosting_edit_page.tpl.php", array('hosting'=>$hosting));
 }
 
-function winmap_connect_ssh_api(){
-  $result = winmap_ssh_connect('103.179.190.104');
-  print_r($result);
-}
-
 function winmap_api_ssh_connect(){
   $ip = '103.179.190.104';
   $username = 'ftp_winmap.vn';

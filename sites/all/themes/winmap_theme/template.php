@@ -9,8 +9,8 @@
 
 function winmap_theme_preprocess_page(&$variables) {
 
-	drupal_add_css(drupal_get_path('module', 'winmap_adv') . '/swiper/css/swiper.min.css', ['weight' => 5]);
-	drupal_add_js(drupal_get_path('module', 'winmap_adv') . '/swiper/js/swiper.min.js', ['weight' => 5]);
+//	drupal_add_css(drupal_get_path('module', 'winmap_adv') . '/swiper/css/swiper.min.css', ['weight' => 5]);
+//	drupal_add_js(drupal_get_path('module', 'winmap_adv') . '/swiper/js/swiper.min.js', ['weight' => 5]);
 
 	drupal_add_css('sites/all/libraries/fancybox/source/jquery.fancybox.css', ['weight' => 5]);
 	drupal_add_js('sites/all/libraries/fancybox/source/jquery.fancybox.pack.js', ['weight' => 5]);
