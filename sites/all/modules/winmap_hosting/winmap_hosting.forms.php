@@ -120,6 +120,30 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
     '#maxlength' => 128,
     '#required' => FALSE,
   ];
+  $form['pleskUser'] = [
+    '#type' => 'textfield',
+    '#title' => t('Plesk Username'),
+    '#default_value' => !empty($hosting->pleskUser)?$hosting->pleskUser:'',
+    '#size' => 60,
+    '#maxlength' => 128,
+    '#required' => FALSE,
+  ];
+  $form['pleskPass'] = [
+    '#type' => 'textfield',
+    '#title' => t('Plesk password'),
+    '#default_value' => !empty($hosting->pleskPass)?$hosting->pleskPass:'',
+    '#size' => 60,
+    '#maxlength' => 128,
+    '#required' => FALSE,
+  ];
+  $form['pleskApiToken'] = [
+    '#type' => 'textfield',
+    '#title' => t('Plesk Api Token'),
+    '#default_value' => !empty($hosting->pleskApiToken)?$hosting->pleskApiToken:'',
+    '#size' => 60,
+    '#maxlength' => 128,
+    '#required' => FALSE,
+  ];
   $form['status'] = array(
     '#type' => 'select',
     '#title' => t('Status'),
@@ -193,6 +217,9 @@ function winmap_hosting_form_submit($form, &$form_state) {
     $hosting->domainPath = $form_state['values']['domainPath'];
     $hosting->ftpUser = $form_state['values']['ftpUser'];
     $hosting->ftpPass = $form_state['values']['ftpPass'];
+    $hosting->pleskUser = $form_state['values']['pleskUser'];
+    $hosting->pleskPass = $form_state['values']['pleskPass'];
+    $hosting->pleskApiToken = $form_state['values']['pleskApiToken'];
     $hosting->status = $form_state['values']['status'];
     $hosting = hosting_save($hosting);
     if (!empty($hosting)) {

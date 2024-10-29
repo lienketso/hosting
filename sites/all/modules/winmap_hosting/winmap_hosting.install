@@ -114,7 +114,37 @@ function winmap_hosting_schema()
         'size' => 'big',
         'not null' => TRUE,
         'default' => 0,
-      )
+      ),
+      'ftpUser' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
+      'ftpPass' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
+      'pleskUser' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
+      'pleskPass' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
+      'pleskApiToken' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
     ),
     'primary key' => array('id'),
     'indexes' => array(
@@ -255,7 +285,36 @@ function winmap_hosting_schema()
         'size' => 'big', // normal / big
         'not null' => FALSE,
       ),
-
+      'ftpUser' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
+      'ftpPass' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
+      'pleskUser' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
+      'pleskPass' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
+      'pleskApiToken' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => '',
+      ),
     ),
     'primary key' => array('id'),
     'indexes' => array(
@@ -564,11 +623,28 @@ function winmap_hosting_schema()
 //  }
 //}
 
-function winmap_hosting_update_7305(){
+//function winmap_hosting_update_7305(){
+//  $transaction = db_transaction();
+//  try {
+//    db_add_field('winmap_hosting_revisions', 'ftpUser', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+//    db_add_field('winmap_hosting_revisions', 'ftpPass', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+//  }catch (Exception $e){
+//    $transaction->rollback();
+//    return $e->getMessage();
+//  }
+//}
+
+function winmap_hosting_update_7306(){
   $transaction = db_transaction();
   try {
-    db_add_field('winmap_hosting_revisions', 'ftpUser', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
-    db_add_field('winmap_hosting_revisions', 'ftpPass', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+    db_add_field('winmap_hostings', 'pleskUser', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+    db_add_field('winmap_hostings', 'pleskPass', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+    db_add_field('winmap_hostings', 'pleskApiToken', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+
+    db_add_field('winmap_hosting_revisions', 'pleskUser', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+    db_add_field('winmap_hosting_revisions', 'pleskPass', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+    db_add_field('winmap_hosting_revisions', 'pleskApiToken', array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => ''));
+
   }catch (Exception $e){
     $transaction->rollback();
     return $e->getMessage();
