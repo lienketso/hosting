@@ -27,7 +27,7 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
     '#default_value' => !empty($hosting->ipv6)?$hosting->ipv6:'',
     '#size' => 60,
     '#maxlength' => 128,
-    '#required' => TRUE,
+    '#required' => FALSE,
   ];
   $form['sshUser'] = [
     '#type' => 'textfield',
@@ -38,12 +38,12 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
     '#required' => TRUE,
   ];
   $form['sshPass'] = [
-    '#type' => 'password',
+    '#type' => 'textfield',
     '#title' => t('SSH Password'),
     '#default_value' => !empty($hosting->sshPass)?$hosting->sshPass:'',
     '#size' => 60,
     '#maxlength' => 80,
-    '#required' => FALSE,
+    '#required' => TRUE,
   ];
   $form['mysqlPort'] = [
     '#type' => 'textfield',
@@ -126,7 +126,7 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
     '#default_value' => !empty($hosting->pleskUser)?$hosting->pleskUser:'',
     '#size' => 60,
     '#maxlength' => 128,
-    '#required' => FALSE,
+    '#required' => TRUE,
   ];
   $form['pleskPass'] = [
     '#type' => 'textfield',
@@ -134,7 +134,7 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
     '#default_value' => !empty($hosting->pleskPass)?$hosting->pleskPass:'',
     '#size' => 60,
     '#maxlength' => 128,
-    '#required' => FALSE,
+    '#required' => TRUE,
   ];
   $form['pleskApiToken'] = [
     '#type' => 'textfield',
@@ -143,6 +143,24 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
     '#size' => 60,
     '#maxlength' => 128,
     '#required' => FALSE,
+  ];
+  $form['cloudflareToken'] = [
+    '#type' => 'textfield',
+    '#title' => t('Cloudflare token api'),
+    '#default_value' => !empty($hosting->cloudflareToken)?$hosting->cloudflareToken:'',
+    '#size' => 60,
+    '#maxlength' => 128,
+    '#required' => TRUE,
+    '#attributes' => array(' placeholder'=>'Token api của nền tảng cloudflare')
+  ];
+  $form['cloudflareZoneId'] = [
+    '#type' => 'textfield',
+    '#title' => t('Cloudflare Zone Id'),
+    '#default_value' => !empty($hosting->cloudflareZoneId)?$hosting->cloudflareZoneId:'',
+    '#size' => 60,
+    '#maxlength' => 128,
+    '#required' => TRUE,
+    '#attributes' => array(' placeholder'=>'Mã Zone id theo tên miền mà nền tảng cloudeflare cấp')
   ];
   $form['status'] = array(
     '#type' => 'select',
@@ -165,7 +183,6 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
 function validate_ip_address($ip) {
   // Biểu thức chính quy để kiểm tra địa chỉ IP IPv4 từ 0 đến 255
   $pattern = '/^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$/';
-  // Kiểm tra nếu IP phù hợp với biểu thức chính quy
   return preg_match($pattern, $ip) === 1;
 }
 function winmap_hosting_form_validate($form, $form_state) {
@@ -174,7 +191,7 @@ function winmap_hosting_form_validate($form, $form_state) {
   $domain = $form_state['values']['domainName'];
   $ip = $form_state['values']['ipv4'];
   if(!validate_ip_address($ip)){
-    form_set_error('', 'Địa chỉ ip không hợp lệ');
+    form_set_error('ipv4', 'Địa chỉ ip không hợp lệ');
   }
   // Kiểm tra tính duy nhất của domain
   $query = db_select('winmap_hostings', 'we')
@@ -220,6 +237,8 @@ function winmap_hosting_form_submit($form, &$form_state) {
     $hosting->pleskUser = $form_state['values']['pleskUser'];
     $hosting->pleskPass = $form_state['values']['pleskPass'];
     $hosting->pleskApiToken = $form_state['values']['pleskApiToken'];
+    $hosting->cloudflareToken = $form_state['values']['cloudflareToken'];
+    $hosting->cloudflareZoneId = $form_state['values']['cloudflareZoneId'];
     $hosting->status = $form_state['values']['status'];
     $hosting = hosting_save($hosting);
     if (!empty($hosting)) {

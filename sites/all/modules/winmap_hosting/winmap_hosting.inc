@@ -82,3 +82,67 @@ function winmap_connect_ftp_api(){
   }
 
 }
+
+
+function winmap_get_api_token_plesk(){
+  $token = winmap_create_plesk_api_token('103.159.51.251','root','ixRj*v4NV#,3g_#');
+  echo $token;
+}
+
+function winmap_create_subdomain(){
+  $result = winmap_ssh_create_sub_domain('103.159.51.251','root','ixRj*v4NV#,3g_#','enterprise','phanmemdms.com.vn','/var/www/vhosts/phanmemdms.com.vn/httpdocs');
+  print_r($result);
+}
+
+function winmap_get_webspace_id_by_plesk(){
+  $result = winmap_get_webspace_by_domain('103.159.51.251','root','ixRj*v4NV#,3g_#','enterprise.phanmemdms.com.vn');
+  print_r($result);
+}
+function winmap_create_dns(){
+  $result = winmap_create_dns_domain('enterprise','103.159.51.251');
+  print_r($result);
+}
+
+function winmap_create_database(){
+  $result = winmap_create_database_by_plesk_api(
+    '103.159.51.251',
+    'root',
+    'ixRj*v4NV#,3g_#',
+    'winmap_test_data',
+    'dmsadmin',
+    '@Lks2024@',
+    'phanmemdms.com.vn'
+  );
+  print_r($result);
+}
+
+function winmap_import_database(){
+  $connect = winmap_ssh_connection('103.159.51.251','root','ixRj*v4NV#,3g_#');
+  $result = winmap_ssh_sql_import_db($connect,'winmap_test_data','dmsadmin','@Lks2024@','/hosting.sql');
+  print_r($result);
+}
+
+
+function winmap_create_folder(){
+  $connect = winmap_ssh_connection('103.159.51.251','root','ixRj*v4NV#,3g_#');
+  $result = winmap_ssh_create_folder($connect,'enterprise.winmap.com.vn','/var/www/vhosts/phanmemdms.com.vn/httpdocs');
+  print_r($result);
+}
+
+function winmap_copy_file_folder(){
+  $connect = winmap_ssh_connection('103.159.51.251','root','ixRj*v4NV#,3g_#');
+  $result = winmap_clone_file_and_folder($connect,'/var/www/vhosts/phanmemdms.com.vn/httpdocs/init','/var/www/vhosts/phanmemdms.com.vn/httpdocs/enterprise.winmap.com.vn');
+  print_r($result);
+}
+
+
+function winmap_edit_file_setting(){
+  $connect = winmap_ssh_connection('103.159.51.251','root','ixRj*v4NV#,3g_#');
+  $linesToEditString = "252 => 'database' => 'hosting_new', 253 => 'username' => 'new_username'";
+  $result = winmap_edit_file($connect,'/var/www/vhosts/phanmemdms.com.vn/httpdocs/init/settings.php',[
+    251 => "'database' => 'hosting_new',",
+    776 => "'/files';",
+    777 => "'/files/test';",
+  ]);
+  print_r($result);
+}

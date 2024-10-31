@@ -69,6 +69,79 @@ function winmap_hosting_menu()
     'type' => MENU_CALLBACK,
   );
 
+  $items['admin/hosting/api-token-plesk'] = array(
+    'title' => 'Api get token plesk',
+    'page callback' => 'winmap_get_api_token_plesk',
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/hosting/api-create-subdomain'] = array(
+    'title' => 'Api post subdomain',
+    'page callback' => 'winmap_create_subdomain',
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/hosting/api-create-dns-domain'] = array(
+    'title' => 'Api post dns domain',
+    'page callback' => 'winmap_create_dns',
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/hosting/api-get-webspace-id-plesk'] = array(
+    'title' => 'Api get webspace id plesk',
+    'page callback' => 'winmap_get_webspace_id_by_plesk',
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/hosting/api-create-database-plesk'] = array(
+    'title' => 'Api create database plesk',
+    'page callback' => 'winmap_create_database',
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/hosting/api-import-database'] = array(
+    'title' => 'Api import database',
+    'page callback' => 'winmap_import_database',
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/hosting/api-create-folder'] = array(
+    'title' => 'Api create folder',
+    'page callback' => 'winmap_create_folder',
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/hosting/api-copy-file-folder'] = array(
+    'title' => 'Api copy file and folder',
+    'page callback' => 'winmap_copy_file_folder',
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/hosting/api-edit-file'] = array(
+    'title' => 'Api edit file setting',
+    'page callback' => 'winmap_edit_file_setting',
+    'access arguments' => array('winmap_hosting module'),
+    'file' => 'winmap_hosting.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+
   return $items;
 }
 
@@ -242,13 +315,125 @@ function winmap_ssh_login($connection, $username, $password)
   return true;
 }
 
+//Lấy về web id trên plesk panel
+function winmap_get_webspace_by_domain($host, $username, $password, $domainName) {
+  $plesk_host = 'https://' . $host . ':8443';
+  $url = "https://$host:8443/enterprise/control/agent.php";
+
+  $xml_data = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<packet>
+  <site>
+    <get>
+       <filter>
+            <name>$domainName</name>
+       </filter>
+       <dataset>
+            <gen_info/>
+       </dataset>
+    </get>
+  </site>
+</packet>
+XML;
+
+  // Khởi tạo cURL
+  $ch = curl_init();
+
+  // Thiết lập các tùy chọn cURL
+  curl_setopt($ch, CURLOPT_URL, $url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+  curl_setopt($ch, CURLOPT_POST, true);
+  curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_data);
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: text/xml',
+    'HTTP_PRETTY_PRINT: TRUE',
+    'HTTP_AUTH_LOGIN: '.$username,
+    'HTTP_AUTH_PASSWD:'.$password
+  ]);
+
+  $response = curl_exec($ch);
+  $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+  if (curl_errno($ch)) {
+    echo 'cURL Error: ' . curl_error($ch);
+  } elseif ($httpcode == 200) {
+    $xml = simplexml_load_string($response);
+
+    if (isset($xml->site->get->result->data->gen_info)) {
+      $webspace_id  = (string)$xml->site->get->result->data->gen_info->{'webspace-id'};
+      return $webspace_id;
+    } else {
+      echo "Webspace ID not found in the response.";
+      return null;
+    }
+  } else {
+    echo "Failed to get webspace ID. HTTP Code: $httpcode. Response: $response";
+    return null;
+  }
+  // Đóng cURL
+  curl_close($ch);
+  return true;
+}
+
+//Tạo database thông qua plesk api
+function winmap_create_database_by_plesk_api($host,$pleskUser,$pleskPass,$databaseName,$mysqlUser,$mysqlPass,$domain){
+  $url = "https://$host:8443/enterprise/control/agent.php";
+  $webspaceId = winmap_get_webspace_by_domain($host,$pleskUser,$pleskPass,$domain);
+  $xml_data = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<packet>
+  <database>
+    <add-db>
+      <webspace-id>$webspaceId</webspace-id>
+      <name>$databaseName</name>
+      <type>mysql</type>
+    </add-db>
+  </database>
+</packet>
+XML;
+
+  $ch = curl_init();
+
+  curl_setopt($ch, CURLOPT_URL, $url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+  curl_setopt($ch, CURLOPT_POST, true);
+  curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_data);
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: text/xml',
+    'HTTP_PRETTY_PRINT: TRUE',
+    'HTTP_AUTH_LOGIN: '.$pleskUser,
+    'HTTP_AUTH_PASSWD:'.$pleskPass
+  ]);
+
+  $response = curl_exec($ch);
+  $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+  if (curl_errno($ch)) {
+    echo 'cURL Error: ' . curl_error($ch);
+  } elseif ($httpcode == 200) {
+    echo "Database created successfully. Response: $response";
+    return TRUE;
+  } else {
+    echo "Failed to create database. HTTP Code: $httpcode. Response: $response";
+    return FALSE;
+  }
+
+  curl_close($ch);
+  return TRUE;
+}
+
 function winmap_ssh_sql_create_db($connect, $dbName, $dbUser, $dbPass, $domain) {
-  // Kiểm tra xem kết nối có phải là một đối tượng SSH hợp lệ không
   if (!$connect) {
     return 'Không có kết nối SSH hợp lệ.';
   }
   if (isset($connect)) {
-    // Lệnh SQL để tạo database và user
+
     $commands = [
       "CREATE DATABASE `$dbName`;",
       "CREATE USER `$dbUser`@'%' IDENTIFIED BY '$dbPass';",
@@ -261,65 +446,71 @@ function winmap_ssh_sql_create_db($connect, $dbName, $dbUser, $dbPass, $domain) 
     }
     watchdog('winmap_ssh_sql_create_db', 'Database @dbname được khởi tạo thành công cho domain @domain',
       array('@dbname' => $dbName, '@domain' => $domain), WATCHDOG_NOTICE);
-    return TRUE; // Trả về true nếu tất cả lệnh thành công
+    return TRUE;
   }
-  // Nếu kết nối không hợp lệ
+
   watchdog('winmap_ssh_sql_create_db', 'Kết nối SSH không hợp lệ được cung cấp để tạo cơ sở dữ liệu.', array(), WATCHDOG_ERROR);
   return FALSE;
 }
 
+//login ssh and import database
 function winmap_ssh_sql_import_db($connect, $dbName, $dbUser, $dbPass, $path) {
   if (!$connect) {
     return 'Không có kết nối SSH hợp lệ.';
   }
-  if (isset($connect)) {
-    if (!file_exists($path)) {
-      return 'File SQL không tồn tại. Vui lòng kiểm tra lại đường dẫn file.';
-    }
-    $command= "mysql -u$dbUser -p$dbPass $dbName < $path";
-    // Thực thi lệnh import qua SSH
-    $stream = ssh2_exec($connect, $command);
-    // Đọc lỗi từ lệnh
-    stream_set_blocking($stream, true);
-    $output = stream_get_contents($stream);
-    fclose($stream);
-    if ($output) {
-      watchdog('winmap_ssh_sql_import_db', 'Không thể nhập cơ sở dữ liệu: @dbname từ file: @path', array('@dbname' => $dbName, '@path' => $path), WATCHDOG_ERROR);
-      return FALSE;
-    }
-    watchdog('winmap_ssh_sql_import_db', 'Database @dbname đã nhập thành công từ file: @path', array('@dbname' => $dbName, '@path' => $path), WATCHDOG_NOTICE);
-    return TRUE; // Import thành công
-  }
-  return FALSE;
-}
 
-//connect plesk api
-function winmap_connect_plesk_api($host,$ip,$username,$password,$apiToken){
-  $plesk_host = 'https://'.$host.':8443';
-  $url = $plesk_host . "/api/v2/domains";
-  $headers = [
-    'Authorization: Basic ' . base64_encode("$username:$password"),
-    'Authorization: Bearer ' . $apiToken,
-    'Content-Type: application/json'
-  ];
-  // Khởi tạo kết nối CURL
-  $ch = curl_init($url);
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Bỏ qua kiểm tra SSL
-  curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+  // Kiểm tra tệp SQL trên máy chủ từ xa qua SSH
+  $checkFileCommand = "test -f $path && echo 'exists' || echo 'not exists'";
+  $stream = ssh2_exec($connect, $checkFileCommand);
+  stream_set_blocking($stream, true);
+  $fileCheckOutput = stream_get_contents($stream);
+  fclose($stream);
 
-  // Thực hiện gọi API
-  $response = curl_exec($ch);
-
-  // Kiểm tra lỗi kết nối
-  if (curl_errno($ch)) {
-    $error_msg = curl_error($ch);
-    curl_close($ch);
-    return "Error connecting to Plesk API: " . $error_msg;
+  if (trim($fileCheckOutput) !== 'exists') {
+    return 'File SQL không tồn tại trên máy chủ từ xa. Vui lòng kiểm tra lại đường dẫn file.';
   }
 
-  curl_close($ch);
-  return $response; // Trả về kết quả kết nối
+  // Thực thi lệnh import qua SSH
+  $command = "mysql -u $dbUser -p$dbPass $dbName < $path";
+  $stream = ssh2_exec($connect, $command);
+  $errorStream = ssh2_fetch_stream($stream, SSH2_STREAM_STDERR); // Lấy luồng lỗi
+  stream_set_blocking($stream, true);
+  stream_set_blocking($errorStream, true);
+
+  $output = stream_get_contents($stream);
+  $errorOutput = stream_get_contents($errorStream); // Lấy thông báo lỗi
+  fclose($stream);
+  fclose($errorStream);
+
+  if ($errorOutput) {
+    watchdog('winmap_ssh_sql_import_db', 'Không thể nhập cơ sở dữ liệu: @dbname từ file: @path. Error: @error', [
+      '@dbname' => $dbName,
+      '@path' => $path,
+      '@error' => $errorOutput
+    ], WATCHDOG_ERROR);
+    return FALSE;
+  }
+
+  // Thực hiện truy vấn kiểm tra số lượng bảng sau khi import
+  $checkTablesCommand = "mysql -u $dbUser -p$dbPass -e 'SHOW TABLES;' $dbName";
+  $stream = ssh2_exec($connect, $checkTablesCommand);
+  stream_set_blocking($stream, true);
+  $tablesOutput = stream_get_contents($stream);
+  fclose($stream);
+
+  if (empty($tablesOutput)) {
+    watchdog('winmap_ssh_sql_import_db', 'Import hoàn thành nhưng không có bảng nào được tạo trong cơ sở dữ liệu @dbname.', [
+      '@dbname' => $dbName,
+      '@path' => $path
+    ], WATCHDOG_WARNING);
+    return FALSE;
+  }
+
+  watchdog('winmap_ssh_sql_import_db', 'Database @dbname đã nhập thành công từ file: @path', [
+    '@dbname' => $dbName,
+    '@path' => $path
+  ], WATCHDOG_NOTICE);
+  return TRUE; // Import thành công
 }
 
 function winmap_ssh_create_domain($host, $domain, $ip, $username, $password) {
@@ -360,115 +551,225 @@ function winmap_ssh_create_domain($host, $domain, $ip, $username, $password) {
 
 }
 
-function winmap_get_webspace_by_domain($host, $username, $password, $apiToken, $domainName) {
-  $plesk_host = 'https://' . $host . ':8443';
-  $url = $plesk_host . "/api/v2/domains?filter[name]=$domainName";
+//create database using plesk api
+function winmap_create_plesk_api_token($host, $username, $password) {
+  // URL đến API để tạo khóa xác thực
+  $url = "https://$host:8443/api/v2/auth/keys";
 
-  // Cấu hình headers với Bearer Token
-  $headers = [
-    'Authorization: Bearer ' . $apiToken,
-    'Content-Type: application/json'
+  // Dữ liệu JSON gửi trong body của yêu cầu
+  $data = [
+    'name' => 'apiToken',
+    'ipAddresses' => [$host],
   ];
+  $json_data = json_encode($data);
 
   // Khởi tạo cURL
-  $ch = curl_init($url);
+  $ch = curl_init();
+
+  // Thiết lập các tùy chọn cURL
+  curl_setopt($ch, CURLOPT_URL, $url);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Bỏ qua xác thực SSL
-  curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-  curl_setopt($ch, CURLOPT_HTTPGET, true);
-
-  // Gửi yêu cầu tới API
-  $response = curl_exec($ch);
-
-  // Kiểm tra lỗi cURL
-  if (curl_errno($ch)) {
-    $error_msg = curl_error($ch);
-    curl_close($ch);
-    return "Error retrieving domain info: " . $error_msg;
-  }
-
-  curl_close($ch);
-  return json_decode($response, true); // Trả về kết quả từ API
-}
-function winmap_ssh_create_sub_domain($ipHost, $username, $password, $apiToken, $subdomain, $parentDomain,$domainPath){
-  //username, password phải là tài khoản admin cao nhất của plesk
-  $plesk_host = 'https://' . $ipHost . ':8443';
-  $url = $plesk_host . "/api/v2/domains";
-
-  // Cấu hình headers với Basic Auth và Bearer Token cho API Plesk
-  $headers = [
-    'Authorization: Basic ' . base64_encode("$username:$password"),
-    'Authorization: Bearer ' . $apiToken,
-    'Content-Type: application/json'
-  ];
-
-  // Dữ liệu JSON để tạo subdomain
-  $webspace = winmap_get_webspace_by_domain($plesk_host, $username, $password, $apiToken, $parentDomain);
-  if (isset($webspace['domains']) && count($webspace['domains']) > 0) {
-    $domainInfo = $webspace['domains'][0];
-    $webspaceId = $domainInfo['webspace_id']; // ID của webspace
-  } else {
-    $webspaceId = 0;
-  }
-  $data = [
-    'name' => $subdomain . '.' . $parentDomain,
-    'parentDomain' => $parentDomain,
-    'type' => 'vrt_hst',  // Xác định loại là subdomain (vrt_hst là virtual hosting trong Plesk)
-    'hosting_type' => 'virtual',
-    'webspace' => [
-      'name' => $parentDomain,
-      'id' => $webspaceId // ID của webspace, cần xác định đúng theo cấu hình
-    ],
-    'documentRoot' => $domainPath // Thư mục muốn trỏ đến
-  ];
-
-  $ch = curl_init($url);
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Bỏ qua xác thực SSL
-  curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
   curl_setopt($ch, CURLOPT_POST, true);
-  curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+  curl_setopt($ch, CURLOPT_USERPWD, "$username:$password");
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'Accept: application/json'
+  ]);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $json_data);
 
   $response = curl_exec($ch);
-  // Kiểm tra lỗi nếu có
+  $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
   if (curl_errno($ch)) {
-    $error_msg = curl_error($ch);
-    curl_close($ch);
-    watchdog('plesk_create_sub_domain', 'Lỗi tạo subdomain: @subdomain', array('error'=>$error_msg), WATCHDOG_ERROR);
+    echo 'cURL Error: ' . curl_error($ch);
+  } elseif ($httpcode == 201) {
+    $data = json_decode($response);
+    return $data->key;
+  } else {
+    echo "Failed to create authentication key. HTTP Code: $httpcode. Response: $response";
   }
+  // Đóng cURL
   curl_close($ch);
   return TRUE;
+}
+
+//tạo subdomain thông qua plesk api
+function winmap_ssh_create_sub_domain($ipHost, $pleskUser, $pleskPass, $subdomain, $parentDomain,$domainPath){
+  //username, password phải là tài khoản admin cao nhất của plesk
+  $url = "https://$ipHost:8443/enterprise/control/agent.php";
+  $xml_data = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<packet>
+  <subdomain>
+    <add>
+      <parent>$parentDomain</parent>
+      <name>$subdomain</name>
+      <property>
+        <name>www_root</name>
+        <value>$domainPath</value>
+      </property>
+    </add>
+  </subdomain>
+</packet>
+XML;
+
+  $ch = curl_init();
+  // Thiết lập các tùy chọn cURL
+  curl_setopt($ch, CURLOPT_URL, $url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Bỏ qua xác minh SSL nếu cần
+  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+  curl_setopt($ch, CURLOPT_POST, true); // Thiết lập phương thức POST
+  curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1); // Sử dụng HTTP/1.1
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_data); // Thiết lập dữ liệu XML POST
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: text/xml',
+    'HTTP_PRETTY_PRINT: TRUE',
+    'HTTP_AUTH_LOGIN: '.$pleskUser,
+    'HTTP_AUTH_PASSWD:'.$pleskPass
+  ]);
+
+  // Thực thi yêu cầu và lấy kết quả
+  $response = curl_exec($ch);
+  $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+  // Kiểm tra lỗi cURL và phản hồi HTTP
+  if (curl_errno($ch)) {
+    echo 'cURL Error: ' . curl_error($ch);
+  } elseif ($httpcode == 201) {
+    echo "Subdomain created successfully: $response";
+  } else {
+    echo "Failed to create subdomain. HTTP Code: $httpcode. Response: $response";
+    return FALSE;
+  }
+  // Đóng cURL
+  curl_close($ch);
+  return true;
 }
 
 function winmap_ssh_create_folder($connect, $folderName, $path) {
   // Kiểm tra kết nối SSH
   if (!$connect) {
-    watchdog('winmap_ssh_create_folder', 'SSH connection is not established.', array(), WATCHDOG_ERROR);
+    watchdog('winmap_ssh_create_folder', 'Không kết nối được với SSH.', array(), WATCHDOG_ERROR);
     return false;
   }
 
   // Tạo đường dẫn đầy đủ cho thư mục mới
   $fullPath = rtrim($path, '/') . '/' . trim($folderName, '/');
+// Command to create the directory
+  $command = "mkdir -p " . escapeshellarg($fullPath);
 
-  // Lệnh để tạo thư mục
-  $command = "mkdir -p " . escapeshellarg($fullPath); // -p để không báo lỗi nếu thư mục đã tồn tại
-
-  // Thực thi lệnh qua SSH
+  // Execute command via SSH
   $stream = ssh2_exec($connect, $command);
+  if (!$stream) {
+    watchdog('winmap_ssh_create_folder', 'Không thể thực hiện lệnh qua SSH.', array(), WATCHDOG_ERROR);
+    return false;
+  }
+
   stream_set_blocking($stream, true);
   $output = stream_get_contents($stream);
-  $returnCode = intval(ssh2_fetch_stream($stream, SSH2_FSTAT));
 
-  // Kiểm tra mã trả về
-  if ($returnCode === 0) {
-    watchdog('winmap_ssh_create_folder', 'Thư mục @folder được khởi tạo từ đường dẫn @path.', array('@folder' => $folderName, '@path' => $fullPath), WATCHDOG_NOTICE);
+  // Kiểm tra lỗi trên STDERR
+  $errorStream = ssh2_fetch_stream($stream, SSH2_STREAM_STDERR);
+  stream_set_blocking($errorStream, true);
+  $errorOutput = stream_get_contents($errorStream);
+
+  fclose($stream);
+  fclose($errorStream);
+
+  if (empty($errorOutput)) {
+    watchdog('winmap_ssh_create_folder', 'Thư mục @folder được tạo thành công với đường dẫn @path.', array('@folder' => $folderName, '@path' => $fullPath), WATCHDOG_NOTICE);
     return true;
   } else {
-    watchdog('winmap_ssh_create_folder', 'Lỗi tạo thư mục @folder tại @path: @output', array('@folder' => $folderName, '@path' => $fullPath, '@output' => $output), WATCHDOG_ERROR);
+    watchdog('winmap_ssh_create_folder', 'Lỗi tạo thư mục @folder tại @path: @error', array('@folder' => $folderName, '@path' => $fullPath, '@error' => $errorOutput), WATCHDOG_ERROR);
     return false;
   }
 }
+//copy file and folder
+function winmap_clone_file_and_folder($connect,$localDirectory, $remoteDirectory){
+  if (!$connect) {
+    watchdog('winmap_ssh_copy_file_folder', 'Không kết nối được với SSH.', array(), WATCHDOG_ERROR);
+    return false;
+  }
+  // Kiểm tra nếu thư mục cục bộ tồn tại
+  if (!is_dir($localDirectory)) {
+    watchdog('winmap_ssh_copy_all', 'Thư mục cục bộ không tồn tại: @localDirectory', array('@localDirectory' => $localDirectory), WATCHDOG_ERROR);
+    return false;
+  }
+  // Duyệt qua tất cả các mục trong thư mục cục bộ
+  $items = scandir($localDirectory);
+  foreach ($items as $item) {
+    if ($item == '.' || $item == '..') continue; // Bỏ qua các thư mục đặc biệt
 
+    $localPath = $localDirectory . '/' . $item;
+    $remotePath = rtrim($remoteDirectory, '/') . '/' . $item;
+
+    if (is_dir($localPath)) {
+      // Tạo thư mục trên máy từ xa
+      $command = "mkdir -p " . escapeshellarg($remotePath);
+      $stream = ssh2_exec($connect, $command);
+      stream_set_blocking($stream, true);
+      fclose($stream);
+
+      // Sao chép đệ quy các tệp trong thư mục con
+      winmap_clone_file_and_folder($connect,$localDirectory, $remoteDirectory);
+    } else {
+      // Sao chép tệp đơn lẻ
+      if (!ssh2_scp_send($connect, $localPath, $remotePath)) {
+        watchdog('winmap_ssh_copy_all', 'Lỗi khi sao chép tệp @file vào @remotePath.', array('@file' => $localPath, '@remotePath' => $remotePath), WATCHDOG_ERROR);
+        return false;
+      } else {
+        watchdog('winmap_ssh_copy_all', 'Tệp @file đã được sao chép vào @remotePath.', array('@file' => $localPath, '@remotePath' => $remotePath), WATCHDOG_NOTICE);
+      }
+    }
+  }
+  return true;
+}
+
+//edit file
+function winmap_edit_file($connect,$filePath,$linesToEdit){
+  if (!$connect) {
+    watchdog('winmap_ssh_copy_file_folder', 'Không kết nối được với SSH.', array(), WATCHDOG_ERROR);
+    return false;
+  }
+// Đọc nội dung file từ máy chủ
+  $stream = ssh2_exec($connect, "cat " . escapeshellarg($filePath));
+  stream_set_blocking($stream, true);
+  $content = stream_get_contents($stream);
+  fclose($stream);
+
+  // Chia nội dung thành các dòng
+  $lines = explode("\n", $content);
+  // Chỉnh sửa các dòng dựa trên mảng $linesToEdit
+  foreach ($linesToEdit as $lineToEditIndex => $newLineContent) {
+    // Kiểm tra nếu chỉ mục tồn tại
+    if (isset($lines[$lineToEditIndex])) {
+      $lines[$lineToEditIndex] = $newLineContent; // Cập nhật dòng
+    }
+  }
+
+  // Kết hợp lại nội dung đã sửa thành một chuỗi
+  $newContent = implode("\n", $lines);
+
+  // Tạo một file tạm thời trên máy cục bộ
+  $localTempFilePath = tempnam(sys_get_temp_dir(), 'tempfile_');
+  file_put_contents($localTempFilePath, $newContent);
+
+  // Sử dụng scp để chuyển file tạm thời đến máy chủ
+  $remoteFilePath = $filePath;
+  if (ssh2_scp_send($connect, $localTempFilePath, $remoteFilePath)) {
+    echo "Lưu thành công!";
+    // Xóa file tạm thời
+    unlink($localTempFilePath);
+    return true;
+  } else {
+    echo "Lỗi khi chuyển file.";
+    return false;
+  }
+
+}
 
 function winmap_ssh_upload_file($connect, $fileName, $path) {
 
@@ -595,11 +896,12 @@ function winmap_ftp_upload_file($connect, $fileName, $path) {
 }
 
 
-function winmap_dns_create_domain($domainName, $ip) {
 
-  $cloudflareToken ="BX4I60roVBRRA9fnsrUSRceLd2-EV-ocp42DO1Cs";
-  $zoneId = "01f1e81cd518dff25bef99c334a146be"; //id lấy từ tên miền tại cloud flare
-  $apiUrl = "https://api.cloudflare.com/client/v4/zones/".$zoneId."/dns_records";
+function winmap_create_dns_domain($domainName, $ip,$cloudflareToken,$cloudflareZoneId) {
+  //domainName là tên bản ghi
+//  $cloudflareToken ="BX4I60roVBRRA9fnsrUSRceLd2-EV-ocp42DO1Cs";
+//  $zoneId = "a5afe68ad6dac7fb25a328548d6c37ec";
+  $apiUrl = "https://api.cloudflare.com/client/v4/zones/".$cloudflareZoneId."/dns_records";
 
   // Dữ liệu gửi đi cho bản ghi DNS
   $data = array(

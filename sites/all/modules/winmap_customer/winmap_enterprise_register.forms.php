@@ -123,13 +123,13 @@ function winmap_enterprise_register_form_validate($form, &$form_state) {
   if (!preg_match('/^[a-z0-9\-]+$/', $domain)) {
     form_set_error('domain', t('The domain "@domain" contains invalid characters. Only lowercase letters (a-z), numbers (0-9), and hyphens (-) are allowed.', array('@domain' => $domain)));
   }
-  // Kiểm tra tính duy nhất của domain
-  $query = db_select('winmap_enterprises', 'we')
-    ->fields('we', array('domain'))
-    ->condition('domain', $domain);
-  $existing_domain = $query->execute()->fetchField();
-  if ($existing_domain) {
-    form_set_error('domain', t('The domain "@domain" already exists. Please choose a unique domain.', array('@domain' => $domain)));
+  //kiểm tra unique các trường dữ liệu
+  $fields = ['phone', 'email', 'domain','username'];
+  foreach ($fields as $field) {
+    $value = $form_state['values'][$field];
+    if (db_query("SELECT COUNT(*) FROM {winmap_enterprises} WHERE $field = :value", [':value' => $value])->fetchField() > 0) {
+      form_set_error($field, t('@field này đã được sử dụng.', ['@field' => ucfirst($field)]));
+    }
   }
   //Check mật khẩu
   if(!validate_confirm_password($password,$confirmPassword)){
@@ -155,24 +155,46 @@ function winmap_enterprise_register_form_submit($form, &$form_state) {
     $customer->status = 0;
     $customer = customer_save($customer);
     if(!empty($customer)){
-      $customerLoad = customer_load($customer);
+
       //get hosting have usedCcu > 40
-      $hosting= db_select('winmap_hostings', 't')
+      $hosting = db_select('winmap_hostings', 't')
         ->fields('t')
         ->condition('usedCCu', 40, '<')
         ->range(0, 1)
         ->execute()
         ->fetchObject();
+
       if(!empty($hosting)){
+        $customerLoad = customer_load($customer);
+        $fullSubDomain = $customerLoad->domain.'.'.$hosting->domainName;
+        $databaseName = 'winmapdms_'.$customerLoad->domain;
+        $localDirectory = '/var/www/vhosts/'.$hosting->domainName.'/httpdocs/init';
+        $remoteDirectory = '/var/www/vhosts/'.$hosting->domainName.'/httpdocs/'.$fullSubDomain;
+        //conect ssh
+        $connect = winmap_ssh_connection($hosting->ipv4,$hosting->sshUser,$hosting->sshPass);
         //create subdomain in hosting
-        winmap_ssh_create_sub_domain($hosting->ipv4,$hosting->sshUser,$hosting->sshPassword,$hosting->apiToken,$customerLoad->domain,$hosting->domainName,$hosting->domainPath);
+        winmap_ssh_create_sub_domain($hosting->ipv4,$hosting->pleskUser,$hosting->pleskPass,$customerLoad->domain,$hosting->domainName,$hosting->domainPath);
         //create dns record by cloud flare
-        winmap_dns_create_domain($customerLoad->domain,$hosting->ipv4);
+        winmap_create_dns_domain($customerLoad->domain,$hosting->ipv4,$hosting->cloudflareToken,$hosting->cloudflareZoneId);
+        //create database
+        winmap_create_database_by_plesk_api($hosting->ipv4,$hosting->sshUser,$hosting->sshPass,$databaseName,$hosting->mysqlUser,$hosting->mysqlPass,$customerLoad->domain);
+        //import database
+        winmap_ssh_sql_import_db($connect,$databaseName,$hosting->myslqUser,$hosting->myslqPass,'/hosting.sql');
+        //create folder
+        winmap_ssh_create_folder($connect,$fullSubDomain,$hosting->domainPath);
+        //clone file and folder in init folder
+        winmap_clone_file_and_folder($connect,$localDirectory,$remoteDirectory);
+        //edit file setting
+        winmap_edit_file($connect,'',[
+          251 => "'database' => 'hosting_new',",
+          776 => "'/files';",
+          777 => "'/files/test';",
+        ]);
+        //Đóng connect ssh
+        winmap_ssh_close($connect);
       }else{
         drupal_set_message(t('Server busy, please try again later'));
       }
-
-
       drupal_set_message(t('Customer '.$customerLoad->name.' has bean created.'));
       drupal_goto('enterprise/register');
     }else{
