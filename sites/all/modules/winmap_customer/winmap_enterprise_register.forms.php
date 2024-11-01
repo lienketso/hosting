@@ -188,9 +188,9 @@ function winmap_enterprise_register_form_submit($form, &$form_state) {
         $lineFilePublicPath = '$conf[\'file_public_path\'] = \'sites/'.$fullSubDomain.'/files\'';
         $lineFilePrivatePath = '$conf[\'file_private_path\'] = \'sites/'.$fullSubDomain.'/files\'';
         winmap_edit_file($connect,$localDirectory.'/init/settings.php',[
-          251 => $lineDatabase,
-          776 => $lineFilePublicPath,
-          777 => $lineFilePrivatePath,
+          267 => $lineDatabase,
+          793 => $lineFilePublicPath,
+          794 => $lineFilePrivatePath,
         ]);
         //update usedCcu hosting
         $new_ccu = $hosting->usedCcu + 1;
