@@ -17,7 +17,7 @@
               <tr>
                 <th>Tên host</th>
                 <th>Ipv4</th>
-                <th>Ipv6</th>
+                <th>SL domain đã sử dụng</th>
                 <th>Domain Name</th>
                 <th>Domain Path</th>
                 <th>Ngày tạo</th>
@@ -31,7 +31,7 @@
                   <tr>
                     <td><?php print($value->name); ?></td>
                     <td><?php echo $value->ipv4;  ?></td>
-                    <td><?php echo $value->ipv6;  ?></td>
+                    <td><?php echo $value->usedCcu;  ?></td>
                     <td><?php echo $value->domainName;  ?></td>
                     <td><?php echo $value->domainPath;  ?></td>
                     <td><?php print(date("d/m/Y",$value->created)); ?></td>

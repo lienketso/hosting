@@ -156,11 +156,10 @@ function winmap_enterprise_register_form_submit($form, &$form_state) {
     $customer = customer_save($customer);
     if(!empty($customer)){
 
-      //get hosting have usedCcu > 40
-      $hosting = db_select('winmap_hostings', 't')
-        ->fields('t')
-        ->condition('usedCCu', 40, '<')
-        ->range(0, 1)
+      //get hosting have usedCcu < maxCcu
+      $hosting = db_select('winmap_hostings', 'wh')
+        ->fields('wh')
+        ->where('wh.usedCcu < wh.maxCcu')
         ->execute()
         ->fetchObject();
 
@@ -168,8 +167,8 @@ function winmap_enterprise_register_form_submit($form, &$form_state) {
         $customerLoad = customer_load($customer);
         $fullSubDomain = $customerLoad->domain.'.'.$hosting->domainName;
         $databaseName = 'winmapdms_'.$customerLoad->domain;
-        $localDirectory = '/var/www/vhosts/'.$hosting->domainName.'/httpdocs/init';
-        $remoteDirectory = '/var/www/vhosts/'.$hosting->domainName.'/httpdocs/'.$fullSubDomain;
+        $localDirectory = $hosting->domainPath;
+        $remoteDirectory = $hosting->domainPath.'/'.$fullSubDomain;
         //conect ssh
         $connect = winmap_ssh_connection($hosting->ipv4,$hosting->sshUser,$hosting->sshPass);
         //create subdomain in hosting
@@ -183,19 +182,36 @@ function winmap_enterprise_register_form_submit($form, &$form_state) {
         //create folder
         winmap_ssh_create_folder($connect,$fullSubDomain,$hosting->domainPath);
         //clone file and folder in init folder
-        winmap_clone_file_and_folder($connect,$localDirectory,$remoteDirectory);
+        winmap_clone_file_and_folder($connect,$localDirectory.'/init',$remoteDirectory);
         //edit file setting
-        winmap_edit_file($connect,'',[
-          251 => "'database' => 'hosting_new',",
-          776 => "'/files';",
-          777 => "'/files/test';",
+        $lineDatabase = "'database'=>'$databaseName'";
+        $lineFilePublicPath = '$conf[\'file_public_path\'] = \'sites/'.$fullSubDomain.'/files\'';
+        $lineFilePrivatePath = '$conf[\'file_private_path\'] = \'sites/'.$fullSubDomain.'/files\'';
+        winmap_edit_file($connect,$localDirectory.'/init/settings.php',[
+          251 => $lineDatabase,
+          776 => $lineFilePublicPath,
+          777 => $lineFilePrivatePath,
         ]);
+        //update usedCcu hosting
+        $new_ccu = $hosting->usedCcu + 1;
+        db_update('winmap_hostings')
+          ->fields(array('usedCcu' => $new_ccu))
+          ->condition('id', $hosting->id)
+          ->execute();
+        //send mail thông tin tới khách hàng
+
+        //send mail đến admin nếu hosting sắp đến giới hạn
+        $threshold_percentage = 0.9;
+        if ($hosting->usedCcu >= $hosting->maxCcu * $threshold_percentage && $hosting->usedCcu < $hosting->maxCcu) {
+          winmap_warning_limit_hosting($hosting);
+        }
         //Đóng connect ssh
         winmap_ssh_close($connect);
       }else{
         drupal_set_message(t('Server busy, please try again later'));
       }
-      drupal_set_message(t('Customer '.$customerLoad->name.' has bean created.'));
+      drupal_set_message(t('Đăng ký dịch vụ thành công, một email được gửi tới địa chỉ @email, với thông tin đăng nhập dịch vụ',
+        array('@email'=>$customer->email)));
       drupal_goto('enterprise/register');
     }else{
       drupal_set_message(t('System is busy.'));

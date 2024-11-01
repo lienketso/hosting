@@ -52,96 +52,6 @@ function winmap_hosting_menu()
     'type' => MENU_CALLBACK,
   );
 
-
-  $items['admin/hosting/connect-ssh-api'] = array(
-    'title' => 'Api connect ssh',
-    'page callback' => 'winmap_api_ssh_connect',
-    'access arguments' => array('winmap_hosting module'),
-    'file' => 'winmap_hosting.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/hosting/connect-ftp-api'] = array(
-    'title' => 'Api connect ftp',
-    'page callback' => 'winmap_connect_ftp_api',
-    'access arguments' => array('winmap_hosting module'),
-    'file' => 'winmap_hosting.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/hosting/api-token-plesk'] = array(
-    'title' => 'Api get token plesk',
-    'page callback' => 'winmap_get_api_token_plesk',
-    'access arguments' => array('winmap_hosting module'),
-    'file' => 'winmap_hosting.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/hosting/api-create-subdomain'] = array(
-    'title' => 'Api post subdomain',
-    'page callback' => 'winmap_create_subdomain',
-    'access arguments' => array('winmap_hosting module'),
-    'file' => 'winmap_hosting.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/hosting/api-create-dns-domain'] = array(
-    'title' => 'Api post dns domain',
-    'page callback' => 'winmap_create_dns',
-    'access arguments' => array('winmap_hosting module'),
-    'file' => 'winmap_hosting.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/hosting/api-get-webspace-id-plesk'] = array(
-    'title' => 'Api get webspace id plesk',
-    'page callback' => 'winmap_get_webspace_id_by_plesk',
-    'access arguments' => array('winmap_hosting module'),
-    'file' => 'winmap_hosting.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/hosting/api-create-database-plesk'] = array(
-    'title' => 'Api create database plesk',
-    'page callback' => 'winmap_create_database',
-    'access arguments' => array('winmap_hosting module'),
-    'file' => 'winmap_hosting.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/hosting/api-import-database'] = array(
-    'title' => 'Api import database',
-    'page callback' => 'winmap_import_database',
-    'access arguments' => array('winmap_hosting module'),
-    'file' => 'winmap_hosting.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/hosting/api-create-folder'] = array(
-    'title' => 'Api create folder',
-    'page callback' => 'winmap_create_folder',
-    'access arguments' => array('winmap_hosting module'),
-    'file' => 'winmap_hosting.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/hosting/api-copy-file-folder'] = array(
-    'title' => 'Api copy file and folder',
-    'page callback' => 'winmap_copy_file_folder',
-    'access arguments' => array('winmap_hosting module'),
-    'file' => 'winmap_hosting.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/hosting/api-edit-file'] = array(
-    'title' => 'Api edit file setting',
-    'page callback' => 'winmap_edit_file_setting',
-    'access arguments' => array('winmap_hosting module'),
-    'file' => 'winmap_hosting.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-
   return $items;
 }
 
@@ -616,14 +526,13 @@ function winmap_ssh_create_sub_domain($ipHost, $pleskUser, $pleskPass, $subdomai
 XML;
 
   $ch = curl_init();
-  // Thiết lập các tùy chọn cURL
   curl_setopt($ch, CURLOPT_URL, $url);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Bỏ qua xác minh SSL nếu cần
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
   curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-  curl_setopt($ch, CURLOPT_POST, true); // Thiết lập phương thức POST
-  curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1); // Sử dụng HTTP/1.1
-  curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_data); // Thiết lập dữ liệu XML POST
+  curl_setopt($ch, CURLOPT_POST, true);
+  curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_data);
   curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: text/xml',
     'HTTP_PRETTY_PRINT: TRUE',
@@ -631,11 +540,9 @@ XML;
     'HTTP_AUTH_PASSWD:'.$pleskPass
   ]);
 
-  // Thực thi yêu cầu và lấy kết quả
   $response = curl_exec($ch);
   $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-  // Kiểm tra lỗi cURL và phản hồi HTTP
   if (curl_errno($ch)) {
     echo 'cURL Error: ' . curl_error($ch);
   } elseif ($httpcode == 201) {
@@ -644,7 +551,6 @@ XML;
     echo "Failed to create subdomain. HTTP Code: $httpcode. Response: $response";
     return FALSE;
   }
-  // Đóng cURL
   curl_close($ch);
   return true;
 }
@@ -655,13 +561,10 @@ function winmap_ssh_create_folder($connect, $folderName, $path) {
     watchdog('winmap_ssh_create_folder', 'Không kết nối được với SSH.', array(), WATCHDOG_ERROR);
     return false;
   }
-
   // Tạo đường dẫn đầy đủ cho thư mục mới
   $fullPath = rtrim($path, '/') . '/' . trim($folderName, '/');
 // Command to create the directory
   $command = "mkdir -p " . escapeshellarg($fullPath);
-
-  // Execute command via SSH
   $stream = ssh2_exec($connect, $command);
   if (!$stream) {
     watchdog('winmap_ssh_create_folder', 'Không thể thực hiện lệnh qua SSH.', array(), WATCHDOG_ERROR);
@@ -670,8 +573,6 @@ function winmap_ssh_create_folder($connect, $folderName, $path) {
 
   stream_set_blocking($stream, true);
   $output = stream_get_contents($stream);
-
-  // Kiểm tra lỗi trên STDERR
   $errorStream = ssh2_fetch_stream($stream, SSH2_STREAM_STDERR);
   stream_set_blocking($errorStream, true);
   $errorOutput = stream_get_contents($errorStream);

@@ -181,12 +181,10 @@ function winmap_hosting_form($form, &$form_state, $hosting = NULL) {
 
 
 function validate_ip_address($ip) {
-  // Biểu thức chính quy để kiểm tra địa chỉ IP IPv4 từ 0 đến 255
   $pattern = '/^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$/';
   return preg_match($pattern, $ip) === 1;
 }
 function winmap_hosting_form_validate($form, $form_state) {
-//  form_set_error('name', t('Weight value must be numeric.'));
   $hosting = $form_state['#hosting'];
   $domain = $form_state['values']['domainName'];
   $ip = $form_state['values']['ipv4'];
